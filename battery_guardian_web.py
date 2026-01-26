@@ -11,12 +11,23 @@ import sys
 import os
 from datetime import datetime
 
+# --- CONSTANTS ---
 PORT = 8080
 SCAN_DURATION = 60
+HISTORY_FILE = os.path.expanduser("~/.battery_guardian_history.json")
 
-# --- HISTORY MANAGER (Copied from GUI) ---
+# Scoring Thresholds
+SCORE_ZERO_ENTROPY = 40
+SCORE_LAZY_CLONE = 30
+SCORE_CALIBRATION_TAMPERING = 30
+SCORE_FLATLINE = 50
+SCORE_ODOMETER_ROLLBACK = 60
+SCORE_TIME_PARADOX = 20
+SCORE_THRESHOLD_SPOOFED = 40
+
+# --- HISTORY MANAGER ---
 class HistoryManager:
-    FILE_PATH = os.path.expanduser("~/.battery_guardian_history.json")
+    FILE_PATH = HISTORY_FILE
 
     @staticmethod
     def load():
@@ -24,7 +35,12 @@ class HistoryManager:
         try:
             with open(HistoryManager.FILE_PATH, 'r') as f:
                 return json.load(f)
-        except: return []
+        except json.JSONDecodeError:
+            print("[!] Warning: Corrupted history file. Starting fresh.")
+            return []
+        except Exception as e:
+            print(f"[!] Error loading history: {e}")
+            return []
 
     @staticmethod
     def save_scan(raw_text, parsed_data):
@@ -42,8 +58,11 @@ class HistoryManager:
         history.append(entry)
         
         # Save back
-        with open(HistoryManager.FILE_PATH, 'w') as f:
-            json.dump(history, f, indent=2)
+        try:
+            with open(HistoryManager.FILE_PATH, 'w') as f:
+                json.dump(history, f, indent=2)
+        except Exception as e:
+             print(f"[!] Error saving history: {e}")
 
     @staticmethod
     def export_to_desktop():
@@ -57,6 +76,7 @@ class HistoryManager:
             return False, str(e)
 
 # --- GLOBAL STATE ---
+state_lock = threading.Lock()
 state = {
     "status": "idle",  # idle, running, complete
     "progress": 0,
@@ -98,49 +118,54 @@ def parse_ioreg(text):
 
 def perform_scan():
     global state
-    state["status"] = "running"
-    state["progress"] = 0
-    state["log"] = []
-    state["score"] = 0
-    state["verdict"] = "ANALYZING..."
+    with state_lock:
+        if state["status"] == "running":
+            return
+        state["status"] = "running"
+        state["progress"] = 0
+        state["log"] = []
+        state["score"] = 0
+        state["verdict"] = "ANALYZING..."
     
     try:
         # 1. Fetch
         state["progress"] = 5
         cmd = ["ioreg", "-l", "-w0", "-r", "-c", "AppleSmartBattery"]
         res = subprocess.run(cmd, capture_output=True, text=True)
-        if not res.stdout: raise Exception("No Battery Found via ioreg")
+        if res.returncode != 0: raise Exception("ioreg command failed. Are you running on a Mac?")
+        if not res.stdout: raise Exception("No battery detected.")
         data = parse_ioreg(res.stdout)
         
         # Save History
         HistoryManager.save_scan(res.stdout, data)
         
         # Update raw metrics for UI
-        if "CycleCount" in data: state["metrics"]["cycle_count"] = data["CycleCount"]
-        if "Serial" in data: state["metrics"]["serial"] = data["Serial"]
-        if "DeviceName" in data: state["metrics"]["model"] = data["DeviceName"]
-        
-        if "DataFlashWriteCount" in data: 
-            state["metrics"]["write_count"] = data["DataFlashWriteCount"]
-            if "CycleCount" in data:
-                state["metrics"]["ratio"] = round(data["DataFlashWriteCount"] / max(1, data["CycleCount"]), 1)
-        if "Qmax" in data: 
-             state["metrics"]["qmax_var"] = max(data["Qmax"]) - min(data["Qmax"])
-        if "TotalOperatingTime" in data: state["metrics"]["op_time"] = f"{data['TotalOperatingTime']} hrs"
-        
-        # Health Calculation: Prioritize AppleRawMaxCapacity (True Hardware Capacity)
-        fcc_health = 0
-        numerator = 0
-        if "AppleRawMaxCapacity" in data:
-            numerator = data["AppleRawMaxCapacity"]
-        elif "MaxCapacity" in data:
-            numerator = data["MaxCapacity"]
+        with state_lock:
+            if "CycleCount" in data: state["metrics"]["cycle_count"] = data["CycleCount"]
+            if "Serial" in data: state["metrics"]["serial"] = data["Serial"]
+            if "DeviceName" in data: state["metrics"]["model"] = data["DeviceName"]
+            
+            if "DataFlashWriteCount" in data: 
+                state["metrics"]["write_count"] = data["DataFlashWriteCount"]
+                if "CycleCount" in data:
+                    state["metrics"]["ratio"] = round(data["DataFlashWriteCount"] / max(1, data["CycleCount"]), 1)
+            if "Qmax" in data: 
+                 state["metrics"]["qmax_var"] = max(data["Qmax"]) - min(data["Qmax"])
+            if "TotalOperatingTime" in data: state["metrics"]["op_time"] = f"{data['TotalOperatingTime']} hrs"
+            
+            # Health Calculation
+            fcc_health = 0
+            numerator = 0
+            if "AppleRawMaxCapacity" in data:
+                numerator = data["AppleRawMaxCapacity"]
+            elif "MaxCapacity" in data:
+                numerator = data["MaxCapacity"]
 
-        if numerator > 0 and "DesignCapacity" in data and data["DesignCapacity"] > 0:
-            fcc_health = int((numerator / data["DesignCapacity"]) * 100)
-            state["metrics"]["health"] = f"{fcc_health}% ({numerator} / {data['DesignCapacity']} mAh)"
-        else:
-            state["metrics"]["health"] = "Error"
+            if numerator > 0 and "DesignCapacity" in data and data["DesignCapacity"] > 0:
+                fcc_health = int((numerator / data["DesignCapacity"]) * 100)
+                state["metrics"]["health"] = f"{fcc_health}% ({numerator} / {data['DesignCapacity']} mAh)"
+            else:
+                state["metrics"]["health"] = "Error"
         
         qmax_health = 0
         if "Qmax" in data and "DesignCapacity" in data and data["DesignCapacity"] > 0:
@@ -172,7 +197,7 @@ def perform_scan():
             if var == 0:
                 if cycles > 5:
                     log.append({"title": "Physics Violation: Zero Entropy", "desc": "Your battery claims every cell is identical down to the last electron. Real lithium cells always vary slightly. This proves the data is hard-coded/spoofed.", "status": "fail"})
-                    score += 40
+                    score += SCORE_ZERO_ENTROPY
                 else:
                     log.append({"title": "Physics Check: Uncalibrated", "desc": "Cells are perfectly identical (0mAh variance). This is technically normal for brand new (0-5 cycle) batteries that haven't learned their capacity yet.", "status": "warning"})
             else:
@@ -182,18 +207,16 @@ def perform_scan():
         if qmax_health > 0 and fcc_health > 0:
             delta = qmax_health - fcc_health
             if delta > 3:
-                # This is GOOD. It means Chemistry (94%) > Usable (82%), so energy is lost to heat/resistance.
                 log.append({"title": "Physics Check: Internal Resistance", "desc": f"Chemical Capacity ({qmax_health}%) is higher than Usable Health ({fcc_health}%). This {delta}% gap confirms real internal impedance build-up due to aging.", "status": "success"})
             elif cycles > 200 and delta == 0:
-                 # Suspicious: Old batteries shouldn't be perfect
                  log.append({"title": "Physics Check: Suspiciously Efficient", "desc": f"Chemical and Usable capacity depend perfectly hard. At {cycles} cycles, expected some impedance loss.", "status": "warning"})
-
+        
         # Qmax Clone
         if "Qmax" in data and "DesignCapacity" in data:
             if data["Qmax"][0] == data["DesignCapacity"]:
                 if cycles > 5:
                     log.append({"title": "Firmware Hack: Lazy Cloning", "desc": f"The chip's 'Qmax' (Chemical Capacity: {data['Qmax'][0]} mAh) matches 'Design Capacity' exactly. This is a common hack to fake 100% health, but the system isn't fooled (hence your low Real Health).", "status": "fail"})
-                    score += 30
+                    score += SCORE_LAZY_CLONE
                 else:
                     log.append({"title": "Firmware Check: Uncalibrated", "desc": f"Capacity exactly matches Design ({data['Qmax'][0]}). This is normal for brand new batteries until first discharge.", "status": "warning"})
 
@@ -201,7 +224,7 @@ def perform_scan():
         if "DOD0" in data and "DesignCapacity" in data:
             if data["DOD0"][0] == data["DesignCapacity"]:
                 log.append({"title": "Calibration Tampering: DOD0", "desc": f"The 'Depth of Discharge' calibration value matches the Capacity ({data['DesignCapacity']}). This is technically impossible in genuine Texas Instruments firmware.", "status": "fail"})
-                score += 30
+                score += SCORE_CALIBRATION_TAMPERING
         
         # Power Failure (PF) Flags
         if "PermanentFailureStatus" in data:
@@ -214,7 +237,7 @@ def perform_scan():
             v_var = max(samples) - min(samples)
             if v_var == 0:
                 log.append({"title": "Live Sensors: Flatline Detected", "desc": "Voltage stayed exactly perfect for 60 seconds. Real electricity fluctuates slightly under load. The chip is broadcasting a static 'Screenshot', not measuring real physics.", "status": "fail"})
-                score += 50
+                score += SCORE_FLATLINE
             else:
                 log.append({"title": "Live Sensors: Active", "desc": f"Voltage fluctuated naturally by {v_var}mV during the stress test. The sensors are alive.", "status": "success"})
 
@@ -225,27 +248,29 @@ def perform_scan():
             est_cycles = int(writes / 14)
             if cycles < 20 and est_cycles > (cycles + 30):
                 log.append({"title": "Odometer Rollback: Verified", "desc": f"Marketing Claims: {cycles} Cycles\nReal Usage Est: ~{est_cycles} Cycles\nThis chip has been reset to look new, but the Flash Memory history proves it is used.", "status": "fail"})
-                score += 60
+                score += SCORE_ODOMETER_ROLLBACK
 
         # Time Paradox
         t = data.get("TotalOperatingTime", 0)
         if writes > 1000 and t < 500:
              log.append({"title": "Time Paradox: Frozen Clock", "desc": f"The chip has logged massive usage ({writes} writes) but claims to be only {t} hours old. The internal clock has likely been frozen to hide aging.", "status": "fail"})
-             score += 20
+             score += SCORE_TIME_PARADOX
         
         # Log History Success
         log.append({"title": "Flight Recorder: Saved", "desc": "This scan has been saved to the permanent history log. Future scans will compare against this to detect 'Frozen Time'.", "status": "success"})
 
-        state["log"] = log
-        state["score"] = score
-        
-        if score >= 40: state["verdict"] = "SPOOFED"
-        elif score > 0: state["verdict"] = "SUSPICIOUS"
-        else: state["verdict"] = "GENUINE"
+        with state_lock:
+            state["log"] = log
+            state["score"] = score
+            
+            if score >= SCORE_THRESHOLD_SPOOFED: state["verdict"] = "SPOOFED"
+            elif score > 0: state["verdict"] = "SUSPICIOUS"
+            else: state["verdict"] = "GENUINE"
         
     except Exception as e:
-        state["verdict"] = "ERROR"
-        state["log"].append({"title": "System Error", "desc": str(e), "status": "fail"})
+        with state_lock:
+            state["verdict"] = "ERROR"
+            state["log"].append({"title": "System Error", "desc": str(e), "status": "fail"})
 
     state["status"] = "complete"
 
@@ -357,6 +382,15 @@ HTML_TEMPLATE = """
         .auto-input { background: #1C1C1E; border: 1px solid var(--sub); color: white; border-radius: 4px; padding: 4px; font-size: 12px; width: 60px; }
         .auto-btn { background: var(--panel); color: #fff; border: 1px solid var(--sub); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
         .auto-btn:hover { background: #3A3A3C; }
+
+        /* Logs */
+        .log-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #2C2C2E; }
+        .log-icon { font-size: 20px; }
+        .log-title { font-weight: 700; margin-bottom: 2px; }
+        .log-title.success { color: var(--green); }
+        .log-title.fail { color: var(--red); }
+        .log-title.warning { color: var(--orange); }
+        .log-desc { font-size: 13px; color: var(--sub); line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -656,7 +690,7 @@ if __name__ == "__main__":
     port_found = False
     for p in range(PORT, PORT + 10):
         try:
-            httpd = socketserver.ThreadingTCPServer(("", p), handler)
+            httpd = socketserver.ThreadingTCPServer(("127.0.0.1", p), handler)
             PORT = p
             port_found = True
             break
