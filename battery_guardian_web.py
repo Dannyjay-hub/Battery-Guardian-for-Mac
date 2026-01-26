@@ -294,9 +294,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             content_len = int(self.headers.get('Content-Length', 0))
             post_body = self.rfile.read(content_len)
             params = json.loads(post_body)
-            days = int(params.get("days", 5))
+            days = int(params.get("days", 7))
+            hour = int(params.get("hour", 20))
+            minute = int(params.get("minute", 0))
             
-            success, msg = install_launch_agent(days)
+            success, msg = install_launch_agent(days, hour, minute)
             res = {"success": success, "msg": msg}
             
             self.send_response(200)
@@ -348,9 +350,11 @@ HTML_TEMPLATE = """
         .history-table td { padding: 10px 0; border-bottom: 1px solid #2C2C2E; color: var(--text); }
         .history-table tr:last-child td { border-bottom: none; }
         
-        .auto-section { background: rgba(50, 215, 75, 0.1); border: 1px solid rgba(50, 215, 75, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .auto-section { background: rgba(50, 215, 75, 0.1); border: 1px solid rgba(50, 215, 75, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .auto-title { font-weight: 700; font-size: 14px; color: var(--green); margin-bottom: 3px; }
-        .auto-desc { font-size: 12px; color: var(--sub); }
+        .auto-desc { font-size: 12px; color: var(--sub); margin-bottom: 5px; }
+        .auto-controls { display: flex; align-items: center; gap: 10px; }
+        .auto-input { background: #1C1C1E; border: 1px solid var(--sub); color: white; border-radius: 4px; padding: 4px; font-size: 12px; width: 60px; }
         .auto-btn { background: var(--panel); color: #fff; border: 1px solid var(--sub); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
         .auto-btn:hover { background: #3A3A3C; }
     </style>
@@ -366,11 +370,19 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="auto-section" id="auto-section">
-            <div>
+            <div style="flex:1;">
                 <div class="auto-title">Automate Daily Scans</div>
-                <div class="auto-desc">Automatically scan at 8:00 PM for the next 7 days.</div>
+                <div class="auto-desc">Run silently in the background.</div>
             </div>
-            <button class="auto-btn" onclick="enableAutomation()">Enable</button>
+            <div class="auto-controls">
+                <label style="font-size:12px;color:var(--sub)">Days:</label>
+                <input type="number" id="auto-days" class="auto-input" value="7" min="1" max="30">
+                
+                <label style="font-size:12px;color:var(--sub)">Time:</label>
+                <input type="time" id="auto-time" class="auto-input" value="20:00">
+                
+                <button class="auto-btn" onclick="enableAutomation()">Enable</button>
+            </div>
         </div>
 
         <div class="verdict-box" id="verdict-box" onclick="startScan()">
@@ -428,12 +440,26 @@ HTML_TEMPLATE = """
         }
 
         async function enableAutomation() {
-            if(!confirm("This will schedule a background scan every night at 8PM for the next 7 days using macOS launchd.\\n\\nContinue?")) return;
+            const days = document.getElementById('auto-days').value;
+            const timeStr = document.getElementById('auto-time').value;
+            
+            if(!days || !timeStr) {
+                alert("Please enter valid days and time.");
+                return;
+            }
+            
+            const [h, m] = timeStr.split(':');
+            
+            if(!confirm(`Schedule daily scan at ${timeStr} for ${days} days?`)) return;
             
             try {
                 const res = await fetch('/api/automate', { 
                     method: 'POST',
-                    body: JSON.stringify({ days: 7 }) 
+                    body: JSON.stringify({ 
+                        days: parseInt(days), 
+                        hour: parseInt(h), 
+                        minute: parseInt(m) 
+                    }) 
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -548,7 +574,7 @@ HTML_TEMPLATE = """
 """
 
 # --- HELPER: AUTOMATION ---
-def install_launch_agent(days):
+def install_launch_agent(days, hour=20, minute=0):
     try:
         plist_path = os.path.expanduser("~/Library/LaunchAgents/com.batteryguardian.daily.plist")
         script_path = os.path.abspath(__file__)
@@ -569,9 +595,9 @@ def install_launch_agent(days):
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>20</integer>
+        <integer>{hour}</integer>
         <key>Minute</key>
-        <integer>00</integer>
+        <integer>{minute}</integer>
     </dict>
     <key>RunAtLoad</key>
     <false/>
@@ -588,7 +614,7 @@ def install_launch_agent(days):
         # Register
         os.system(f"launchctl unload {plist_path} 2>/dev/null")
         os.system(f"launchctl load {plist_path}")
-        return True, f"Daily scan scheduled (8pm) for {days} days."
+        return True, f"Daily scan scheduled ({hour}:{minute:02d}) for {days} days."
     except Exception as e:
         return False, str(e)
 
