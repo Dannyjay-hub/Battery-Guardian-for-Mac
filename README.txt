@@ -1,17 +1,26 @@
-Mac Battery Guardian v5.6 (Fix)
-================================
+Mac Battery Guardian v5.7 (Auto + UI)
+=======================================
 
 USAGE:
 1. Double-click "Double Click To Run.command".
 2. It will open in your browser automatically.
-3. If it asks for permission to access "System Events" or "Terminal", click Allow.
+3. You will see your Mac's Model and Serial in the header.
 
-CHANGELOG (v5.6):
-- Fixed "Error detected" crash on launch.
-- Added auto-port detection (will try 8080, 8081, 8082... if port is busy).
-- Enabled error logging for easier debugging.
+AUTOMATION (NEW):
+You can now enable daily scans directly from the App Interface.
+1. Look for the green "Automate Daily Scans" box.
+2. Click "Enable".
+3. Enter your password if prompted (to allow the background agent).
+4. The tool will wake up at 8:00 PM silently for the next 7 days.
+
+ADVANCED / HEADLESS:
+- Run silent scan: python3 battery_guardian_web.py --auto
+- Enable automation via CLI: python3 battery_guardian_web.py --enable-automation 5
+
+GITHUB UPDATES:
+This tool is Git-enabled. To update:
+  git pull
 
 TROUBLESHOOTING:
-- If it says "File is damaged", open Terminal and run:
-  xattr -cr "Double Click To Run.command"
-- If it still crashes, take a screenshot of the window; it now shows the real error.
+- If "File is damaged", run: xattr -cr "Double Click To Run.command"
+- Logs are saved to: ~/.battery_guardian_history.json

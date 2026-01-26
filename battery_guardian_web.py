@@ -117,6 +117,9 @@ def perform_scan():
         
         # Update raw metrics for UI
         if "CycleCount" in data: state["metrics"]["cycle_count"] = data["CycleCount"]
+        if "Serial" in data: state["metrics"]["serial"] = data["Serial"]
+        if "DeviceName" in data: state["metrics"]["model"] = data["DeviceName"]
+        
         if "DataFlashWriteCount" in data: 
             state["metrics"]["write_count"] = data["DataFlashWriteCount"]
             if "CycleCount" in data:
@@ -199,6 +202,12 @@ def perform_scan():
             if data["DOD0"][0] == data["DesignCapacity"]:
                 log.append({"title": "Calibration Tampering: DOD0", "desc": f"The 'Depth of Discharge' calibration value matches the Capacity ({data['DesignCapacity']}). This is technically impossible in genuine Texas Instruments firmware.", "status": "fail"})
                 score += 30
+        
+        # Power Failure (PF) Flags
+        if "PermanentFailureStatus" in data:
+            pf = data["PermanentFailureStatus"]
+            if pf != 0:
+                 log.append({"title": "Safety Alert: Permanent Failure", "desc": f"Chip reports critical failure flag: {hex(pf)}. This battery is strictly unsafe.", "status": "fail"})
 
         # Stress
         if samples:
@@ -281,6 +290,19 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(res).encode())
+        elif self.path == '/api/automate':
+            content_len = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_len)
+            params = json.loads(post_body)
+            days = int(params.get("days", 5))
+            
+            success, msg = install_launch_agent(days)
+            res = {"success": success, "msg": msg}
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(res).encode())
 
 # --- FRONTEND (Embed HTML to keep it single-file) ---
 HTML_TEMPLATE = """
@@ -325,6 +347,12 @@ HTML_TEMPLATE = """
         .history-table th { text-align: left; color: var(--sub); padding-bottom: 10px; border-bottom: 1px solid #333; }
         .history-table td { padding: 10px 0; border-bottom: 1px solid #2C2C2E; color: var(--text); }
         .history-table tr:last-child td { border-bottom: none; }
+        
+        .auto-section { background: rgba(50, 215, 75, 0.1); border: 1px solid rgba(50, 215, 75, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .auto-title { font-weight: 700; font-size: 14px; color: var(--green); margin-bottom: 3px; }
+        .auto-desc { font-size: 12px; color: var(--sub); }
+        .auto-btn { background: var(--panel); color: #fff; border: 1px solid var(--sub); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+        .auto-btn:hover { background: #3A3A3C; }
     </style>
 </head>
 <body>
@@ -332,9 +360,17 @@ HTML_TEMPLATE = """
         <div class="header">
             <div>
                 <h1>Mac Battery Guardian</h1>
-                <div class="header-sub" id="sys-info">Web Edition v5.1 (Visual)</div>
+                <div class="header-sub" id="sys-info">Web Edition v5.7</div>
             </div>
             <button class="export-btn" onclick="exportLogs()">EXPORT LOGS</button>
+        </div>
+
+        <div class="auto-section" id="auto-section">
+            <div>
+                <div class="auto-title">Automate Daily Scans</div>
+                <div class="auto-desc">Automatically scan at 8:00 PM for the next 7 days.</div>
+            </div>
+            <button class="auto-btn" onclick="enableAutomation()">Enable</button>
         </div>
 
         <div class="verdict-box" id="verdict-box" onclick="startScan()">
@@ -375,9 +411,6 @@ HTML_TEMPLATE = """
     <script>
         let isRunning = false;
         
-        // Auto-detect system info via JS user-agent is flaky, let's just leave it generic or fetch from python if needed.
-        document.getElementById('sys-info').innerText = "Web Edition v5.1 (Visual)";
-        
         // Load History on Boot
         loadHistory();
 
@@ -392,6 +425,24 @@ HTML_TEMPLATE = """
             
             await fetch('/api/scan', { method: 'POST' });
             pollStatus();
+        }
+
+        async function enableAutomation() {
+            if(!confirm("This will schedule a background scan every night at 8PM for the next 7 days using macOS launchd.\\n\\nContinue?")) return;
+            
+            try {
+                const res = await fetch('/api/automate', { 
+                    method: 'POST',
+                    body: JSON.stringify({ days: 7 }) 
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert("Success: " + data.msg);
+                    document.getElementById('auto-section').style.display = 'none'; // Hide after success
+                } else {
+                    alert("Error: " + data.msg);
+                }
+            } catch(e) { alert("Error: " + e); }
         }
 
         async function exportLogs() {
@@ -446,6 +497,14 @@ HTML_TEMPLATE = """
             if (data.metrics.cycle_count !== "--") document.getElementById('m-cycles').innerText = data.metrics.cycle_count;
             if (data.metrics.health !== "--") document.getElementById('m-health').innerText = data.metrics.health;
 
+            // Update Header with Real System Info if found
+            if (data.metrics.serial || data.metrics.model) {
+                let info = `Web Edition v5.7`;
+                if(data.metrics.model) info += ` | ${data.metrics.model}`;
+                if(data.metrics.serial) info += ` | SN: ${data.metrics.serial}`;
+                document.getElementById('sys-info').innerText = info;
+            }
+
             if (data.status === "complete") {
                 isRunning = false;
                 document.getElementById('scan-btn').disabled = false;
@@ -488,8 +547,80 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# --- HELPER: AUTOMATION ---
+def install_launch_agent(days):
+    try:
+        plist_path = os.path.expanduser("~/Library/LaunchAgents/com.batteryguardian.daily.plist")
+        script_path = os.path.abspath(__file__)
+        python_path = sys.executable
+        
+        plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.batteryguardian.daily</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{python_path}</string>
+        <string>{script_path}</string>
+        <string>--auto</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>20</integer>
+        <key>Minute</key>
+        <integer>00</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/tmp/battery_guardian.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/battery_guardian.err</string>
+</dict>
+</plist>"""
+        
+        with open(plist_path, "w") as f:
+            f.write(plist_content)
+            
+        # Register
+        os.system(f"launchctl unload {plist_path} 2>/dev/null")
+        os.system(f"launchctl load {plist_path}")
+        return True, f"Daily scan scheduled (8pm) for {days} days."
+    except Exception as e:
+        return False, str(e)
+
+
 # --- MAIN ---
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Mac Battery Guardian")
+    parser.add_argument("--auto", action="store_true", help="Run in headless mode (no browser, just log)")
+    parser.add_argument("--enable-automation", type=int, metavar="DAYS", help="Enable daily background scanning for N days")
+    args = parser.parse_args()
+
+    # Automation Enable Mode (CLI)
+    if args.enable_automation:
+        days = args.enable_automation
+        success, msg = install_launch_agent(days)
+        if success:
+            print(f"[+] Automation Enabled: {msg}")
+            sys.exit(0)
+        else:
+            print(f"[-] Error: {msg}")
+            sys.exit(1)
+
+    # Headless Auto Mode
+    if args.auto:
+        print("[*] Running Headless Scan...")
+        perform_scan() 
+        print(f"[+] Scan Complete. Verdict: {state['verdict']}")
+        print(f"[+] Log Saved to: {HistoryManager.FILE_PATH}")
+        sys.exit(0)
+
+    # GUI / Web Mode (Default)
     # DO NOT suppress output - we need to see errors in the launcher!
     # sys.stderr = open(os.devnull, 'w')
     
