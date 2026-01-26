@@ -77,6 +77,8 @@ class HistoryManager:
 
 # --- GLOBAL STATE ---
 state_lock = threading.Lock()
+stop_scan = threading.Event()
+
 state = {
     "status": "idle",  # idle, running, complete
     "progress": 0,
@@ -89,7 +91,9 @@ state = {
         "qmax_var": "--",
         "op_time": "--",
         "health": "--",
-        "ratio": "--"
+        "ratio": "--",
+        "model": "--", 
+        "serial": "--"
     }
 }
 
@@ -116,6 +120,8 @@ def parse_ioreg(text):
         except: pass # Ignore non-int lists for now
     return d
 
+    return d
+
 def perform_scan():
     global state
     with state_lock:
@@ -127,14 +133,22 @@ def perform_scan():
         state["score"] = 0
         state["verdict"] = "ANALYZING..."
     
+    stop_scan.clear()
+    
     try:
         # 1. Fetch
         state["progress"] = 5
+        
         cmd = ["ioreg", "-l", "-w0", "-r", "-c", "AppleSmartBattery"]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0: raise Exception("ioreg command failed. Are you running on a Mac?")
         if not res.stdout: raise Exception("No battery detected.")
         data = parse_ioreg(res.stdout)
+        
+        # Validation
+        if "CycleCount" not in data and "DesignCapacity" not in data:
+            # Just warn, don't crash loop
+            pass 
         
         # Save History
         HistoryManager.save_scan(res.stdout, data)
@@ -143,7 +157,6 @@ def perform_scan():
         with state_lock:
             if "CycleCount" in data: state["metrics"]["cycle_count"] = data["CycleCount"]
             if "Serial" in data: state["metrics"]["serial"] = data["Serial"]
-            if "DeviceName" in data: state["metrics"]["model"] = data["DeviceName"]
             
             if "DataFlashWriteCount" in data: 
                 state["metrics"]["write_count"] = data["DataFlashWriteCount"]
@@ -174,6 +187,14 @@ def perform_scan():
         # 2. Stress Test
         samples = []
         for i in range(SCAN_DURATION):
+            # Check Cancel
+            if stop_scan.is_set():
+                with state_lock:
+                    state["status"] = "complete"
+                    state["verdict"] = "CANCELLED"
+                    state["log"].append({"title": "Scan Cancelled", "desc": "User stopped the scan manually.", "status": "warning"})
+                return
+
             # Update progress
             pct = int(10 + ((i / SCAN_DURATION) * 85))
             state["progress"] = pct
@@ -308,6 +329,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"OK")
+        elif self.path == '/api/cancel':
+            stop_scan.set()
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
         elif self.path == '/api/export':
             success, msg = HistoryManager.export_to_desktop()
             res = {"success": success, "msg": msg}
@@ -356,6 +382,7 @@ HTML_TEMPLATE = """
         .verdict-box.spoofed { background-color: var(--red); } .verdict-box.spoofed .verdict-text { color: white; }
         .verdict-box.genuine { background-color: var(--green); } .verdict-box.genuine .verdict-text { color: black; }
         .verdict-box.suspicious { background-color: var(--orange); } .verdict-box.suspicious .verdict-text { color: black; }
+        .verdict-box.cancelled { background-color: var(--panel); border: 2px solid var(--sub); }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
         .card { background-color: var(--panel); border-radius: 10px; padding: 15px; }
@@ -365,8 +392,10 @@ HTML_TEMPLATE = """
         .progress-container { background-color: var(--panel); height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 20px; }
         .progress-bar { background-color: var(--accent); height: 100%; width: 0%; transition: width 0.5s ease; }
         
-        .scan-btn { width: 100%; padding: 15px; background-color: var(--accent); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; margin-bottom: 30px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 30px; }
+        .scan-btn { flex: 1; padding: 15px; background-color: var(--accent); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; }
         .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .cancel-btn { padding: 15px; background-color: var(--red); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; display: none; }
         
         .history-section { border-top: 1px solid #333; padding-top: 20px; margin-top: 20px; }
         .history-title { font-size: 18px; font-weight: 700; margin-bottom: 15px; }
@@ -379,10 +408,13 @@ HTML_TEMPLATE = """
         .auto-title { font-weight: 700; font-size: 14px; color: var(--green); margin-bottom: 3px; }
         .auto-desc { font-size: 12px; color: var(--sub); margin-bottom: 5px; }
         .auto-controls { display: flex; align-items: center; gap: 10px; }
-        .auto-input { background: #1C1C1E; border: 1px solid var(--sub); color: white; border-radius: 4px; padding: 4px; font-size: 12px; width: 60px; }
+        /* High Visibility Inputs */
+        .auto-input { background: #1C1C1E; border: 1px solid var(--sub); color: white; border-radius: 6px; padding: 6px; font-size: 14px; color-scheme: dark; }
+        .auto-input:focus { border-color: var(--accent); outline: none; }
+        
         .auto-btn { background: var(--panel); color: #fff; border: 1px solid var(--sub); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
         .auto-btn:hover { background: #3A3A3C; }
-
+        
         /* Logs */
         .log-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #2C2C2E; }
         .log-icon { font-size: 20px; }
@@ -398,7 +430,7 @@ HTML_TEMPLATE = """
         <div class="header">
             <div>
                 <h1>Mac Battery Guardian</h1>
-                <div class="header-sub" id="sys-info">Web Edition v5.7</div>
+                <div class="header-sub" id="sys-info">Web Edition v5.8</div>
             </div>
             <button class="export-btn" onclick="exportLogs()">EXPORT LOGS</button>
         </div>
@@ -410,7 +442,7 @@ HTML_TEMPLATE = """
             </div>
             <div class="auto-controls">
                 <label style="font-size:12px;color:var(--sub)">Days:</label>
-                <input type="number" id="auto-days" class="auto-input" value="7" min="1" max="30">
+                <input type="number" id="auto-days" class="auto-input" value="7" min="1" max="999" style="width:60px">
                 
                 <label style="font-size:12px;color:var(--sub)">Time:</label>
                 <input type="time" id="auto-time" class="auto-input" value="20:00">
@@ -432,7 +464,10 @@ HTML_TEMPLATE = """
             <div class="card"><div class="card-label">Health</div><div class="card-value" id="m-health">--</div></div>
         </div>
         
-        <button class="scan-btn" id="scan-btn" onclick="startScan()">START FULL SCAN (60s)</button>
+        <div class="controls">
+            <button class="scan-btn" id="scan-btn" onclick="startScan()">START FULL SCAN (60s)</button>
+            <button class="cancel-btn" id="cancel-btn" onclick="cancelScan()">CANCEL</button>
+        </div>
 
         <div id="log-container"></div>
         
@@ -465,12 +500,20 @@ HTML_TEMPLATE = """
             isRunning = true;
             document.getElementById('scan-btn').disabled = true;
             document.getElementById('scan-btn').innerText = "SCANNING...";
+            document.getElementById('cancel-btn').style.display = "block"; // Show Cancel
+            
             document.getElementById('verdict-text').innerText = "ANALYZING...";
-            document.getElementById('verdict-box').className = "verdict-box"; // Reset colors
-            document.getElementById('log-container').innerHTML = ""; // Clear log
+            document.getElementById('verdict-box').className = "verdict-box"; // Reset
+            document.getElementById('log-container').innerHTML = "";
             
             await fetch('/api/scan', { method: 'POST' });
             pollStatus();
+        }
+        
+        async function cancelScan() {
+            if (!isRunning) return;
+            await fetch('/api/cancel', { method: 'POST' });
+            // UI will update when pollStatus detects completion
         }
 
         async function enableAutomation() {
@@ -498,7 +541,7 @@ HTML_TEMPLATE = """
                 const data = await res.json();
                 if (data.success) {
                     alert("Success: " + data.msg);
-                    document.getElementById('auto-section').style.display = 'none'; // Hide after success
+                    document.getElementById('auto-section').style.display = 'none';
                 } else {
                     alert("Error: " + data.msg);
                 }
@@ -523,7 +566,6 @@ HTML_TEMPLATE = """
                 
                 if (logs.length > 0) {
                     tbody.innerHTML = "";
-                    // Reverse to show newest first
                     logs.reverse().forEach(entry => {
                         const date = new Date(entry.timestamp).toLocaleString();
                         const cycles = entry.cycle_count || 0;
@@ -557,11 +599,10 @@ HTML_TEMPLATE = """
             if (data.metrics.cycle_count !== "--") document.getElementById('m-cycles').innerText = data.metrics.cycle_count;
             if (data.metrics.health !== "--") document.getElementById('m-health').innerText = data.metrics.health;
 
-            // Update Header with Real System Info if found
-            if (data.metrics.serial || data.metrics.model) {
-                let info = `Web Edition v5.7`;
-                if(data.metrics.model) info += ` | ${data.metrics.model}`;
-                if(data.metrics.serial) info += ` | SN: ${data.metrics.serial}`;
+            // Update Header with Real System Info
+            if (data.metrics.serial) {
+                let info = `Web Edition v5.8`;
+                if(data.metrics.serial && data.metrics.serial !== "--") info += ` | SN: ${data.metrics.serial}`;
                 document.getElementById('sys-info').innerText = info;
             }
 
@@ -569,6 +610,7 @@ HTML_TEMPLATE = """
                 isRunning = false;
                 document.getElementById('scan-btn').disabled = false;
                 document.getElementById('scan-btn').innerText = "SCAN AGAIN";
+                document.getElementById('cancel-btn').style.display = "none"; // Hide Cancel
                 
                 // Verdict
                 const vb = document.getElementById('verdict-box');
@@ -576,14 +618,15 @@ HTML_TEMPLATE = """
                 vt.innerText = data.verdict;
                 if (data.verdict === "SPOOFED") vb.classList.add("spoofed");
                 else if (data.verdict === "GENUINE") vb.classList.add("genuine");
+                else if (data.verdict === "CANCELLED") vb.classList.add("cancelled");
                 else vb.classList.add("suspicious");
 
                 // Logs
                 const lc = document.getElementById('log-container');
                 lc.innerHTML = "";
                 data.log.forEach(item => {
-                    const icon = item.status === "success" ? "✅" : "❌";
-                    const colorClass = item.status === "success" ? "success" : "fail";
+                    const icon = item.status === "success" ? "✅" : (item.status === "warning" ? "⚠️" : "❌");
+                    const colorClass = item.status === "success" ? "success" : (item.status === "warning" ? "warning" : "fail");
                     lc.innerHTML += `
                         <div class="log-item">
                             <div class="log-icon">${icon}</div>
@@ -595,7 +638,6 @@ HTML_TEMPLATE = """
                     `;
                 });
                 
-                // Refresh History Table
                 loadHistory();
                 
             } else {
@@ -607,11 +649,24 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# --- HELPER: AUTOMATION ---
+
+        # --- HELPER: AUTOMATION ---
 def install_launch_agent(days, hour=20, minute=0):
     try:
+        # 1. Setup Safe Directory (Bypass Desktop TCC issues)
+        safe_dir = os.path.expanduser("~/.battery_guardian")
+        if not os.path.exists(safe_dir):
+            os.makedirs(safe_dir)
+            
+        # 2. Copy Self to Safe Directory
+        current_script = os.path.abspath(__file__)
+        safe_script = os.path.join(safe_dir, "bg_auto.py")
+        
+        with open(current_script, 'r') as src, open(safe_script, 'w') as dst:
+            dst.write(src.read())
+            
+        # 3. Create Plist pointing to Safe Script
         plist_path = os.path.expanduser("~/Library/LaunchAgents/com.batteryguardian.daily.plist")
-        script_path = os.path.abspath(__file__)
         python_path = sys.executable
         
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -623,7 +678,7 @@ def install_launch_agent(days, hour=20, minute=0):
     <key>ProgramArguments</key>
     <array>
         <string>{python_path}</string>
-        <string>{script_path}</string>
+        <string>{safe_script}</string>
         <string>--auto</string>
     </array>
     <key>StartCalendarInterval</key>
@@ -648,7 +703,7 @@ def install_launch_agent(days, hour=20, minute=0):
         # Register
         os.system(f"launchctl unload {plist_path} 2>/dev/null")
         os.system(f"launchctl load {plist_path}")
-        return True, f"Daily scan scheduled ({hour}:{minute:02d}) for {days} days."
+        return True, f"Scheduled ({hour}:{minute:02d}) for {days} days via Safe Mode."
     except Exception as e:
         return False, str(e)
 
