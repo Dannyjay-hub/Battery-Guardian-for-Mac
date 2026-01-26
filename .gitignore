@@ -1,0 +1,20 @@
+# System
+.DS_Store
+*.zip
+*.command
+
+# Logs & History (Privacy)
+*.json
+.battery_guardian_history.json
+control_group.json
+/Ebuka/
+/Caleb/
+/Kuldek/
+
+# Python
+__pycache__/
+*.pyc
+
+# Docs
+*.pdf
+sluu276.pdf
