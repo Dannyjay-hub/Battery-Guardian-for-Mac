@@ -4,7 +4,7 @@ Mac Battery Guardian v5.8 (Custom Auto + UI)
 USAGE:
 1. Double-click "Double Click To Run.command".
 2. It will open in your browser automatically.
-3. You will see your Mac's Model and Serial in the header.
+
 
 TROUBLESHOOTING:
 - If it says "File is damaged" or refuses to open:
