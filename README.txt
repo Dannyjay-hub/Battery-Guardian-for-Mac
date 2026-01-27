@@ -7,12 +7,18 @@ USAGE:
 
 
 TROUBLESHOOTING:
-- If it says "File is damaged" or refuses to open:
-  1. Open the Terminal app (Command+Space, type "Terminal").
-  2. Paste this command and hit Enter:
-     xattr -cr "Double Click To Run.command"
-  3. Try double-clicking the file again.
-- Logs are saved to: ~/.battery_guardian_history.json
+- ERROR 1: "Permission Denied" or "You do not have appropriate access privileges":
+    1. Open Terminal.
+    2. Paste this command and hit Enter:
+       chmod +x "Double Click To Run.command"
+    3. Try opening it again.
+
+- ERROR 2: "File is damaged" or "Unidentified Developer":
+    1. Open Terminal.
+    2. Paste this command and hit Enter:
+       xattr -cr "Double Click To Run.command"
+    3. Try opening it again.
+- Logs are saved to: ~/.battery_guardian_log.json
 
 AUTOMATION (CUSTOMIZABLE):
 You can now schedule silent background scans tailored to your needs.
