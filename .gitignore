@@ -1,20 +1,16 @@
-# System
-.DS_Store
-*.zip
-*.command
-
-# Logs & History (Privacy)
-*.json
-.battery_guardian_history.json
-control_group.json
-/Ebuka/
-/Caleb/
-/Kuldek/
-
-# Python
+# Build artifacts
+build/
+*.dmg
 __pycache__/
 *.pyc
 
-# Docs
-*.pdf
-sluu276.pdf
+# macOS
+.DS_Store
+*.icns
+
+# Investigation data (not part of the product)
+investigation/
+
+# Temp files
+*.log
+*.err
