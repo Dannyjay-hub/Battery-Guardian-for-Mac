@@ -165,18 +165,22 @@ def format_operating_time(hours):
     """Convert raw hours to human-readable format."""
     if not isinstance(hours, (int, float)) or hours <= 0:
         return "--"
-    if hours >= 8760:
-        years = hours / 8760
-        months = (hours % 8760) / 730
-        return f"{int(years)}y {int(months)}m"
-    elif hours >= 730:
-        months = hours / 730
-        return f"{int(months)}mo"
-    elif hours >= 24:
-        days = hours / 24
-        return f"{int(days)}d"
-    else:
-        return f"{int(hours)}h"
+    
+    parts = []
+    years = int(hours // 8760)
+    rem = hours % 8760
+    months = int(rem // 730)
+    rem = rem % 730
+    days = int(rem // 24)
+    
+    if years > 0:
+        parts.append(f"{years} year{'s' if years > 1 else ''}")
+    if months > 0:
+        parts.append(f"{months} month{'s' if months > 1 else ''}")
+    if days > 0:
+        parts.append(f"{days} day{'s' if days > 1 else ''}")
+        
+    return ", ".join(parts) if parts else f"{int(hours)} hours"
 
 
 # --- CORE LOGIC ---
@@ -867,7 +871,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="card"><div class="card-label">Health</div><div class="card-value" id="m-health">—</div><div class="card-trend" id="t-health"></div></div>
             <div class="card"><div class="card-label">Entropy</div><div class="card-value" id="m-entropy">—</div></div>
             <div class="card"><div class="card-label">Write Ratio</div><div class="card-value" id="m-ratio">—</div></div>
-            <div class="card"><div class="card-label">Op Time</div><div class="card-value" id="m-optime">—</div><div class="card-trend" id="t-optime"></div></div>
+            <div class="card"><div class="card-label">TOTAL OPERATING TIME</div><div class="card-value" id="m-optime">—</div><div class="card-trend" id="t-optime"></div></div>
             <div class="card"><div class="card-label">Temp</div><div class="card-value" id="m-temp">—</div></div>
         </div>
 
@@ -883,7 +887,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="history-section">
             <div class="section-title">History Log</div>
             <table class="history-table">
-                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Op Time</th></tr></thead>
+                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Total Operating Time</th></tr></thead>
                 <tbody id="history-body">
                     <tr><td colspan="4" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
                 </tbody>
