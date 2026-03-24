@@ -560,9 +560,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 body = json.loads(self.rfile.read(content_len))
             except (json.JSONDecodeError, Exception):
                 body = {}
-            days = max(1, min(365, int(body.get("days", 7))))
-            hour = max(0, min(23, int(body.get("hour", 20))))
-            minute = max(0, min(59, int(body.get("minute", 0))))
+            days = int(body.get("days", 7))
+            hour = int(body.get("hour", 20))
+            minute = int(body.get("minute", 0))
             success, msg = install_launch_agent(days, hour, minute)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -607,6 +607,11 @@ def generate_share_report():
 # --- AUTOMATION ---
 def install_launch_agent(days, hour=20, minute=0):
     try:
+        # Enforce bounds inside the core function
+        days = max(1, min(365, int(days)))
+        hour = max(0, min(23, int(hour)))
+        minute = max(0, min(59, int(minute)))
+        
         safe_dir = os.path.expanduser("~/.battery_guardian")
         if not os.path.exists(safe_dir):
             os.makedirs(safe_dir)
