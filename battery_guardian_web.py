@@ -962,7 +962,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (d.metrics.ratio !== '--') document.getElementById('m-ratio').innerText = d.metrics.ratio;
             if (d.metrics.op_time !== '--') document.getElementById('m-optime').innerText = d.metrics.op_time;
             if (d.metrics.temperature && d.metrics.temperature !== '--') document.getElementById('m-temp').innerText = d.metrics.temperature;
-            document.getElementById('m-score').innerText = d.score;
 
 
             // Serial
