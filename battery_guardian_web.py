@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Mac Battery Guardian v1.0
+Mac Battery Guardian v1.1
 A native macOS battery forensics tool.
 """
 
@@ -17,7 +17,7 @@ import platform
 from datetime import datetime
 
 # --- CONSTANTS ---
-VERSION = "1.0"
+VERSION = "1.1"
 PORT = 8080
 SCAN_DURATION_FULL = 60
 SCAN_DURATION_QUICK = 10
@@ -148,9 +148,28 @@ state = {
         "op_time": "--",
         "health": "--",
         "ratio": "--",
-        "serial": "--"
+        "serial": "--",
+        "temperature": "--"
     }
 }
+
+
+def format_operating_time(hours):
+    """Convert raw hours to human-readable format."""
+    if not isinstance(hours, (int, float)) or hours <= 0:
+        return "--"
+    if hours >= 8760:
+        years = hours / 8760
+        months = (hours % 8760) / 730
+        return f"{int(years)}y {int(months)}m"
+    elif hours >= 730:
+        months = hours / 730
+        return f"{int(months)}mo"
+    elif hours >= 24:
+        days = hours / 24
+        return f"{int(days)}d"
+    else:
+        return f"{int(hours)}h"
 
 
 # --- CORE LOGIC ---
@@ -247,6 +266,7 @@ def perform_scan(scan_mode="full"):
         state["verdict"] = "ANALYZING..."
         state["scan_mode"] = scan_mode
         state["trends"] = {}
+        state["scan_started"] = time.time()
     
     stop_scan.clear()
     duration = SCAN_DURATION_FULL if scan_mode == "full" else SCAN_DURATION_QUICK
@@ -281,7 +301,14 @@ def perform_scan(scan_mode="full"):
             if "Qmax" in data:
                 state["metrics"]["qmax_var"] = max(data["Qmax"]) - min(data["Qmax"])
             if "TotalOperatingTime" in data:
-                state["metrics"]["op_time"] = f"{data['TotalOperatingTime']} hrs"
+                raw_hrs = data['TotalOperatingTime']
+                state["metrics"]["op_time"] = format_operating_time(raw_hrs)
+                state["metrics"]["op_time_raw"] = raw_hrs
+            
+            # Temperature (ioreg reports in centi-degrees)
+            if "Temperature" in data:
+                temp_c = data["Temperature"] / 100
+                state["metrics"]["temperature"] = f"{temp_c:.0f}°C"
             
             # Health
             numerator = 0
@@ -436,7 +463,8 @@ def perform_scan(scan_mode="full"):
             state["verdict"] = "ERROR"
             state["log"].append({"title": "System Error", "desc": str(e), "status": "fail"})
     
-    state["status"] = "complete"
+    with state_lock:
+        state["status"] = "complete"
 
 
 # --- HTTP SERVER ---
@@ -498,7 +526,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"success": success, "msg": msg}).encode())
         elif self.path == "/api/automate":
             content_len = int(self.headers.get('Content-Length', 0))
-            body = json.loads(self.rfile.read(content_len))
+            try:
+                body = json.loads(self.rfile.read(content_len))
+            except (json.JSONDecodeError, Exception):
+                body = {}
             days = body.get("days", 7)
             hour = body.get("hour", 20)
             minute = body.get("minute", 0)
@@ -822,7 +853,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="card"><div class="card-label">Entropy</div><div class="card-value" id="m-entropy">—</div></div>
             <div class="card"><div class="card-label">Write Ratio</div><div class="card-value" id="m-ratio">—</div></div>
             <div class="card"><div class="card-label">Op Time</div><div class="card-value" id="m-optime">—</div><div class="card-trend" id="t-optime"></div></div>
-            <div class="card"><div class="card-label">Spoof Score</div><div class="card-value" id="m-score">0</div></div>
+            <div class="card"><div class="card-label">Temp</div><div class="card-value" id="m-temp">—</div></div>
         </div>
 
         <div class="scan-controls">
@@ -830,13 +861,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <button class="scan-btn secondary" id="quick-btn" onclick="startScan('quick')">Quick Scan (10s)</button>
             <button class="cancel-btn" id="cancel-btn" onclick="cancelScan()">Cancel</button>
         </div>
+        <div id="scan-timer" style="text-align:center;font-size:12px;color:var(--sub);margin-top:-16px;margin-bottom:16px;display:none"></div>
 
         <div id="log-container"></div>
 
         <div class="history-section">
             <div class="section-title">History Log</div>
             <table class="history-table">
-                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Op Time</th></tr></thead>
+                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Op Time</th></tr></thead>
                 <tbody id="history-body">
                     <tr><td colspan="4" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
                 </tbody>
@@ -871,6 +903,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     <script>
         let isRunning = false;
+        let scanMode = 'full';
+        let scanDuration = 60;
+        let scanStartTime = 0;
+        let scanTimerInterval = null;
 
         // Init
         (async () => {
@@ -885,6 +921,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         async function startScan(mode) {
             if (isRunning) return;
             isRunning = true;
+            scanMode = mode;
+            scanDuration = mode === 'full' ? 60 : 10;
+            scanStartTime = Date.now();
             document.getElementById('full-btn').disabled = true;
             document.getElementById('quick-btn').disabled = true;
             document.getElementById('cancel-btn').style.display = 'block';
@@ -892,6 +931,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             updateVerdict('ANALYZING...', 'analyzing');
             updateRing(0, 'var(--accent)');
+
+            // Show countdown timer
+            const timerEl = document.getElementById('scan-timer');
+            timerEl.style.display = 'block';
+            scanTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - scanStartTime) / 1000);
+                const remaining = Math.max(0, scanDuration - elapsed);
+                timerEl.innerText = remaining > 0 ? `~${remaining}s remaining` : 'Finalizing...';
+            }, 1000);
 
             await fetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode }) });
             pollStatus();
@@ -913,7 +961,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (d.metrics.qmax_var !== '--') document.getElementById('m-entropy').innerText = d.metrics.qmax_var + ' mAh';
             if (d.metrics.ratio !== '--') document.getElementById('m-ratio').innerText = d.metrics.ratio;
             if (d.metrics.op_time !== '--') document.getElementById('m-optime').innerText = d.metrics.op_time;
+            if (d.metrics.temperature && d.metrics.temperature !== '--') document.getElementById('m-temp').innerText = d.metrics.temperature;
             document.getElementById('m-score').innerText = d.score;
+
 
             // Serial
             if (d.metrics.serial && d.metrics.serial !== '--') {
@@ -928,6 +978,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 document.getElementById('full-btn').disabled = false;
                 document.getElementById('quick-btn').disabled = false;
                 document.getElementById('cancel-btn').style.display = 'none';
+
+                // Stop countdown
+                clearInterval(scanTimerInterval);
+                document.getElementById('scan-timer').style.display = 'none';
 
                 // Verdict
                 const vClass = d.verdict === 'SPOOFED' ? 'spoofed' :
@@ -999,7 +1053,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         const health = e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity ?
                             Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100) + '%' : '—';
                         const time = e.parsed.TotalOperatingTime || 0;
-                        tbody.innerHTML += `<tr><td>${date}</td><td>${cycles}</td><td>${health}</td><td>${time} hrs</td></tr>`;
+                        const score = e.health_score || '—';
+                        tbody.innerHTML += `<tr><td>${date}</td><td>${cycles}</td><td>${health}</td><td>${score}</td><td>${time} hrs</td></tr>`;
                     });
                 }
             } catch(e) {}
@@ -1024,7 +1079,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         async function exportLogs() {
             const res = await fetch('/api/export', { method: 'POST' });
             const data = await res.json();
-            alert(data.success ? 'Exported to:\\n' + data.msg : 'Error: ' + data.msg);
+            alert(data.success ? 'Exported to:\n' + data.msg : 'Error: ' + data.msg);
         }
 
         async function copyReport() {

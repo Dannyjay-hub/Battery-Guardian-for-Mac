@@ -11,6 +11,11 @@ __pycache__/
 # Investigation data (not part of the product)
 investigation/
 
+# Diagnostic data files
+*.ips.ca.synced
+*.ips
+battery-report.html
+
 # Temp files
 *.log
 *.err
