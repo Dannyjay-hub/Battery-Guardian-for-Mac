@@ -27,6 +27,7 @@ PORT = 8080
 SCAN_DURATION_FULL = 60
 SCAN_DURATION_QUICK = 10
 HISTORY_FILE = os.path.expanduser("~/.battery_guardian_log.json")
+MAX_HISTORY = 100
 
 # Scoring Thresholds
 SCORE_ZERO_ENTROPY = 40
