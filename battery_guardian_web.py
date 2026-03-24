@@ -1079,7 +1079,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         async function exportLogs() {
             const res = await fetch('/api/export', { method: 'POST' });
             const data = await res.json();
-            alert(data.success ? 'Exported to:\n' + data.msg : 'Error: ' + data.msg);
+            alert(data.success ? 'Exported to:\\n' + data.msg : 'Error: ' + data.msg);
         }
 
         async function copyReport() {
