@@ -70,6 +70,13 @@ def get_mac_model():
         if model_name and chip:
             return f"{model_name} ({chip})"
         elif model_name:
+            try:
+                res2 = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True, timeout=2)
+                sysctl_chip = res2.stdout.strip()
+                if sysctl_chip:
+                    return f"{model_name} ({sysctl_chip})"
+            except Exception:
+                pass
             return model_name
         return "Mac"
     except Exception:
@@ -248,7 +255,15 @@ def compute_trends(current_data, last_entry):
     if curr_op > prev_op:
         trends["op_time"] = "up"
     elif curr_op == prev_op:
-        trends["op_time"] = "frozen"
+        try:
+            prev_time_str = last_entry.get("timestamp", "")
+            prev_time = datetime.fromisoformat(prev_time_str)
+            if (datetime.now() - prev_time).total_seconds() > 86400:
+                trends["op_time"] = "frozen"
+            else:
+                trends["op_time"] = "stable"
+        except Exception:
+            trends["op_time"] = "stable"
     
     return trends
 
