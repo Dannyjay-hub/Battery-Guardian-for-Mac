@@ -14,7 +14,12 @@ import time
 import sys
 import os
 import platform
+import tempfile
+import logging
 from datetime import datetime
+
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+logger = logging.getLogger("battery_guardian")
 
 # --- CONSTANTS ---
 VERSION = "1.1"
@@ -108,11 +113,16 @@ class HistoryManager:
             "raw_text_snippet": raw_text[:2000]
         }
         history.append(entry)
+        if len(history) > MAX_HISTORY:
+            history = history[-MAX_HISTORY:]
+            
         try:
-            with open(HistoryManager.FILE_PATH, 'w') as f:
+            tmp_path = HistoryManager.FILE_PATH + ".tmp"
+            with open(tmp_path, 'w') as f:
                 json.dump(history, f, indent=2)
+            os.replace(tmp_path, HistoryManager.FILE_PATH)
         except Exception as e:
-            print(f"[!] Save error: {e}")
+            logger.warning(f"Save error: {e}")
 
     @staticmethod
     def get_last_scan():
@@ -549,9 +559,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 body = json.loads(self.rfile.read(content_len))
             except (json.JSONDecodeError, Exception):
                 body = {}
-            days = body.get("days", 7)
-            hour = body.get("hour", 20)
-            minute = body.get("minute", 0)
+            days = max(1, min(365, int(body.get("days", 7))))
+            hour = max(0, min(23, int(body.get("hour", 20))))
+            minute = max(0, min(59, int(body.get("minute", 0))))
             success, msg = install_launch_agent(days, hour, minute)
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -634,10 +644,23 @@ def install_launch_agent(days, hour=20, minute=0):
 </plist>"""
         with open(plist_path, "w") as f:
             f.write(plist_content)
-        os.system(f"launchctl unload {plist_path} 2>/dev/null")
-        os.system(f"launchctl load {plist_path}")
+        
+        subprocess.run(["launchctl", "unload", plist_path], capture_output=True, check=False)
+        subprocess.run(["launchctl", "load", plist_path], capture_output=True, check=True)
+        
+        config_path = os.path.join(safe_dir, "automation_config.json")
+        config = {
+            "installed_at": datetime.now().isoformat(),
+            "expires_after_days": days,
+            "hour": hour,
+            "minute": minute
+        }
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+            
         return True, f"Scheduled ({hour}:{minute:02d}) for {days} days."
     except Exception as e:
+        logger.error(f"LaunchAgent error: {e}")
         return False, str(e)
 # --- FRONTEND TEMPLATE ---
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -1129,18 +1152,39 @@ if __name__ == "__main__":
     # Automation CLI
     if args.enable_automation:
         success, msg = install_launch_agent(args.enable_automation)
-        print(f"[+] {msg}" if success else f"[-] Error: {msg}")
-        sys.exit(0 if success else 1)
+        if success:
+            logger.info(msg)
+            sys.exit(0)
+        else:
+            logger.error(msg)
+            sys.exit(1)
 
     # Headless
     if args.auto:
+        try:
+            config_path = os.path.expanduser("~/.battery_guardian/automation_config.json")
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    config = json.load(f)
+                installed_at = datetime.fromisoformat(config["installed_at"])
+                expires_days = config.get("expires_after_days", 0)
+                if expires_days > 0 and (datetime.now() - installed_at).days >= expires_days:
+                    plist_path = os.path.expanduser("~/Library/LaunchAgents/com.batteryguardian.daily.plist")
+                    subprocess.run(["launchctl", "unload", plist_path], capture_output=True)
+                    if os.path.exists(plist_path):
+                        os.remove(plist_path)
+                    logger.info("Automation expired. LaunchAgent unloaded cleanly.")
+                    sys.exit(0)
+        except Exception as e:
+            logger.warning(f"Failed to check automation expiry: {e}")
+
         ok, err = check_platform()
         if not ok:
-            print(f"[-] Platform error: {err}")
+            logger.error(f"Platform error: {err}")
             sys.exit(1)
-        print("[*] Running Headless Scan...")
+        logger.info("Running Headless Scan...")
         perform_scan()
-        print(f"[+] Verdict: {state['verdict']} | Health: {state['health_score']}/100")
+        logger.info(f"Verdict: {state['verdict']} | Health: {state['health_score']}/100")
         sys.exit(0)
 
     # --- GUI Mode ---
@@ -1164,12 +1208,12 @@ if __name__ == "__main__":
             continue
 
     if not port_found:
-        print(f"Error: No open port found ({PORT}-{PORT+9})")
+        logger.error(f"No open port found ({PORT}-{PORT+9})")
         sys.exit(1)
 
     server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     server_thread.start()
-    print(f"Server running at http://localhost:{PORT}")
+    logger.info(f"Server running at http://localhost:{PORT}")
 
     # Launch window
     use_native = not args.no_window
@@ -1186,7 +1230,7 @@ if __name__ == "__main__":
             )
             webview.start()
         except ImportError:
-            print("[!] pywebview not installed. Falling back to browser.")
+            logger.warning("pywebview not installed. Falling back to browser.")
             import webbrowser
             webbrowser.open(f"http://localhost:{PORT}")
             try:
