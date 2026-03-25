@@ -1,0 +1,19 @@
+"""Battery Guardian — shared constants."""
+
+import os
+
+VERSION = "1.1"
+PORT = 8080
+SCAN_DURATION_FULL = 60
+SCAN_DURATION_QUICK = 10
+HISTORY_FILE = os.path.expanduser("~/.battery_guardian_log.json")
+MAX_HISTORY = 100
+
+# Scoring Thresholds
+SCORE_ZERO_ENTROPY = 40
+SCORE_LAZY_CLONE = 30
+SCORE_CALIBRATION_TAMPERING = 30
+SCORE_FLATLINE = 50
+SCORE_ODOMETER_ROLLBACK = 60
+SCORE_TIME_PARADOX = 20
+SCORE_THRESHOLD_SPOOFED = 40

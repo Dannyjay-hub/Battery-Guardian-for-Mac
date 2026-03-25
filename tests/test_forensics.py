@@ -3,9 +3,9 @@ import sys
 import os
 from datetime import datetime
 
-# Add parent directory to path to import battery_guardian_web
+# Add parent directory to path to import project modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from battery_guardian_web import compute_health_score, compute_trends
+from bg_analysis import compute_health_score, compute_trends
 
 # --- Health Score Tests ---
 
