@@ -38,7 +38,7 @@ def get_mac_model():
             elif "Processor Name:" in line and not chip:
                 chip = line.split(":", 1)[1].strip()
         if model_name and chip:
-            return f"{model_name} ({chip})"
+            res_str = f"{model_name} ({chip})"
         elif model_name:
             try:
                 res2 = subprocess.run(
@@ -47,10 +47,14 @@ def get_mac_model():
                 )
                 sysctl_chip = res2.stdout.strip()
                 if sysctl_chip:
-                    return f"{model_name} ({sysctl_chip})"
+                    res_str = f"{model_name} ({sysctl_chip})"
+                else:
+                    res_str = model_name
             except Exception:
-                pass
-            return model_name
-        return "Mac"
+                res_str = model_name
+        else:
+            res_str = "Mac"
+            
+        return res_str.replace("(Unknown)", "").replace("(unknown)", "").strip()
     except Exception:
         return "Mac"
