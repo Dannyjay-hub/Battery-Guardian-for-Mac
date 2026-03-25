@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battery Guardian</title>
+    <style>
+        :root {
+            --bg: #0D0D0F; --panel: #1A1A1E; --panel-hover: #222228;
+            --text: #F5F5F7; --sub: #86868B; --accent: #0A84FF;
+            --green: #30D158; --red: #FF453A; --orange: #FFD60A;
+            --border: rgba(255,255,255,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+            padding: 24px; display: flex; justify-content: center;
+            min-height: 100vh;
+        }
+        .container { max-width: 720px; width: 100%; }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+        .brand-sub { color: var(--sub); font-size: 13px; margin-top: 3px; }
+        .header-actions { display: flex; gap: 8px; }
+        .icon-btn {
+            background: var(--panel); border: 1px solid var(--border); color: var(--sub);
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: var(--panel-hover); color: var(--text); }
+
+        /* Health Ring */
+        .health-ring-section {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 32px 0; margin-bottom: 24px;
+        }
+        .ring-container { position: relative; width: 180px; height: 180px; }
+        .ring-svg { width: 180px; height: 180px; transform: rotate(-90deg); }
+        .ring-bg { fill: none; stroke: var(--panel); stroke-width: 10; }
+        .ring-fill {
+            fill: none; stroke: var(--green); stroke-width: 10;
+            stroke-linecap: round; stroke-dasharray: 502; stroke-dashoffset: 502;
+            transition: stroke-dashoffset 1.5s ease, stroke 0.5s ease;
+        }
+        .ring-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .ring-score { font-size: 48px; font-weight: 800; letter-spacing: -2px; }
+        .ring-label { font-size: 12px; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        /* Verdict Badge */
+        .verdict-badge {
+            display: inline-block; padding: 6px 18px; border-radius: 20px;
+            font-size: 13px; font-weight: 700; letter-spacing: 1px;
+            text-transform: uppercase; margin-top: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+        .verdict-badge.genuine { background: rgba(48,209,88,0.15); color: var(--green); }
+        .verdict-badge.spoofed { background: rgba(255,69,58,0.15); color: var(--red); }
+        .verdict-badge.suspicious { background: rgba(255,214,10,0.15); color: var(--orange); }
+        .verdict-badge.analyzing { background: rgba(10,132,255,0.15); color: var(--accent); }
+        .verdict-badge.cancelled { background: rgba(134,134,139,0.15); color: var(--sub); }
+        .verdict-badge.ready { background: var(--panel); color: var(--sub); }
+
+        /* Cards Grid */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+        .card {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px; transition: all 0.2s;
+        }
+        .card:hover { border-color: rgba(255,255,255,0.15); }
+        .card-label { color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 6px; }
+        .card-value { font-size: 18px; font-weight: 700; font-family: "SF Mono", "Menlo", monospace; }
+        .card-trend { font-size: 11px; margin-top: 4px; }
+        .trend-up { color: var(--green); }
+        .trend-down { color: var(--red); }
+        .trend-stable { color: var(--sub); }
+        .trend-frozen { color: var(--red); }
+
+        /* Scan Buttons */
+        .scan-controls { display: flex; gap: 10px; margin-bottom: 24px; }
+        .scan-btn {
+            flex: 1; padding: 14px; border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .scan-btn.primary { background: var(--accent); color: white; }
+        .scan-btn.primary:hover { background: #0070E0; }
+        .scan-btn.secondary { background: var(--panel); color: var(--accent); border: 1px solid var(--border); }
+        .scan-btn.secondary:hover { background: var(--panel-hover); }
+        .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .cancel-btn {
+            padding: 14px; background: rgba(255,69,58,0.12); color: var(--red);
+            border: 1px solid rgba(255,69,58,0.3); border-radius: 12px;
+            font-size: 15px; font-weight: 700; cursor: pointer; display: none;
+        }
+
+        /* Progress */
+        .progress-wrap { background: var(--panel); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 24px; }
+        .progress-bar { background: linear-gradient(90deg, var(--accent), #5AC8FA); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 3px; }
+
+        /* Log Items */
+        .log-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .log-icon { font-size: 18px; flex-shrink: 0; }
+        .log-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+        .log-title.success { color: var(--green); }
+        .log-title.fail { color: var(--red); }
+        .log-title.warning { color: var(--orange); }
+        .log-desc { font-size: 12px; color: var(--sub); line-height: 1.5; }
+
+        /* Automation */
+        .auto-section {
+            background: rgba(48,209,88,0.06); border: 1px solid rgba(48,209,88,0.15);
+            border-radius: 12px; padding: 16px; margin-bottom: 24px;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        }
+        .auto-title { font-weight: 700; font-size: 13px; color: var(--green); }
+        .auto-desc { font-size: 11px; color: var(--sub); margin-top: 2px; }
+        .auto-controls { display: flex; align-items: center; gap: 8px; }
+        .auto-input {
+            background: var(--bg); border: 1px solid var(--border); color: white;
+            border-radius: 8px; padding: 6px 8px; font-size: 13px; color-scheme: dark;
+        }
+        .auto-input:focus { border-color: var(--accent); outline: none; }
+        .auto-btn {
+            background: rgba(48,209,88,0.12); color: var(--green); border: 1px solid rgba(48,209,88,0.25);
+            border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .auto-btn:hover { background: rgba(48,209,88,0.2); }
+
+        /* History */
+        .history-section { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 8px; }
+        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .history-table th { text-align: left; color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .history-table td { padding: 10px 0; border-bottom: 1px solid var(--border); }
+
+        /* Footer */
+        .footer { text-align: center; padding: 24px 0; font-size: 11px; color: var(--sub); }
+        .footer a { color: var(--accent); text-decoration: none; }
+
+        /* About Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--panel); border-radius: 16px; padding: 28px; max-width: 500px;
+            width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border);
+        }
+        .modal h2 { font-size: 18px; margin-bottom: 16px; }
+        .modal p { font-size: 13px; color: var(--sub); line-height: 1.6; margin-bottom: 12px; }
+        .modal-close {
+            background: var(--accent); color: white; border: none; padding: 10px 24px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 8px;
+        }
+
+        /* No Battery Screen */
+        .no-battery {
+            text-align: center; padding: 80px 20px;
+        }
+        .no-battery-icon { font-size: 64px; margin-bottom: 20px; }
+        .no-battery h2 { font-size: 22px; margin-bottom: 12px; }
+        .no-battery p { color: var(--sub); font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+        .fade-in { animation: fadeIn 0.4s ease; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-app">
+        <div class="header">
+            <div class="brand">
+                <h1>🔋 Battery Guardian</h1>
+                <div class="brand-sub" id="sys-info">v{{VERSION}} — Loading...</div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="copyReport()" title="Copy Report">📋</button>
+                <button class="icon-btn" onclick="exportLogs()" title="Export Logs">📤</button>
+                <button class="icon-btn" onclick="showAbout()" title="About">ℹ️</button>
+            </div>
+        </div>
+
+        <div class="auto-section">
+            <div>
+                <div class="auto-title">⚡ Automate Daily Scans</div>
+                <div class="auto-desc">Run silently in the background</div>
+            </div>
+            <div class="auto-controls">
+                <label style="font-size:11px;color:var(--sub)">Days:</label>
+                <input type="number" id="auto-days" class="auto-input" value="7" min="1" max="999" style="width:55px">
+                <label style="font-size:11px;color:var(--sub)">Time:</label>
+                <input type="time" id="auto-time" class="auto-input" value="20:00">
+                <button class="auto-btn" onclick="enableAutomation()">Enable</button>
+            </div>
+        </div>
+
+        <div class="health-ring-section">
+            <div class="ring-container">
+                <svg class="ring-svg" viewBox="0 0 180 180">
+                    <circle class="ring-bg" cx="90" cy="90" r="80"/>
+                    <circle class="ring-fill" id="ring-fill" cx="90" cy="90" r="80"/>
+                </svg>
+                <div class="ring-center">
+                    <div class="ring-score" id="ring-score">—</div>
+                    <div class="ring-label">Health Score</div>
+                </div>
+            </div>
+            <div class="verdict-badge ready" id="verdict-badge">Ready to Scan</div>
+        </div>
+
+        <div class="progress-wrap"><div class="progress-bar" id="progress"></div></div>
+
+        <div class="grid">
+            <div class="card"><div class="card-label">Cycles</div><div class="card-value" id="m-cycles">—</div><div class="card-trend" id="t-cycles"></div></div>
+            <div class="card"><div class="card-label">Health</div><div class="card-value" id="m-health">—</div><div class="card-trend" id="t-health"></div></div>
+            <div class="card"><div class="card-label">Entropy</div><div class="card-value" id="m-entropy">—</div></div>
+            <div class="card"><div class="card-label">Write Ratio</div><div class="card-value" id="m-ratio">—</div></div>
+            <div class="card"><div class="card-label">TOTAL OPERATING TIME</div><div class="card-value" id="m-optime">—</div><div class="card-trend" id="t-optime"></div></div>
+            <div class="card"><div class="card-label">Temp</div><div class="card-value" id="m-temp">—</div></div>
+        </div>
+
+        <div class="scan-controls">
+            <button class="scan-btn primary" id="full-btn" onclick="startScan('full')">Full Scan (60s)</button>
+            <button class="scan-btn secondary" id="quick-btn" onclick="startScan('quick')">Quick Scan (10s)</button>
+            <button class="cancel-btn" id="cancel-btn" onclick="cancelScan()">Cancel</button>
+        </div>
+        <div id="scan-timer" style="text-align:center;font-size:12px;color:var(--sub);margin-top:-16px;margin-bottom:16px;display:none"></div>
+
+        <div id="log-container"></div>
+
+        <div class="history-section">
+            <div class="section-title">History Log</div>
+            <table class="history-table">
+                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Total Operating Time</th></tr></thead>
+                <tbody id="history-body">
+                    <tr><td colspan="4" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Built by <a href="https://github.com/Dannyjay-hub" target="_blank">@Dannyjay-hub</a> · Battery Guardian v{{VERSION}}
+        </div>
+    </div>
+
+    <!-- No Battery Screen (hidden by default) -->
+    <div class="no-battery" id="no-battery" style="display:none">
+        <div class="no-battery-icon">🖥️</div>
+        <h2>No Battery Detected</h2>
+        <p>Battery Guardian requires a MacBook with a built-in battery. This device (Mac Mini, iMac, Mac Pro, or Mac Studio) doesn't have a battery to analyze.</p>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal-overlay" id="about-modal">
+        <div class="modal">
+            <h2>About Battery Guardian</h2>
+            <p><strong>Battery Guardian</strong> is a forensic tool that detects counterfeit, reprogrammed, or spoofed MacBook batteries by analyzing the Texas Instruments gas gauge chip data.</p>
+            <p><strong>Health Score:</strong> A composite 0-100 rating combining capacity, cycle count, and spoof indicators.</p>
+            <p><strong>Entropy Check:</strong> Verifies that individual cells have natural capacity variance (spoofed batteries show zero).</p>
+            <p><strong>Live Sensor Test:</strong> Monitors voltage fluctuation in real-time. Real batteries fluctuate; fakes show flatlines.</p>
+            <p><strong>Odometer Check:</strong> Compares cycle count against flash write count to detect resets.</p>
+            <p><strong>Time Paradox:</strong> Detects if the internal clock has been frozen to hide the battery's true age.</p>
+            <button class="modal-close" onclick="hideAbout()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let scanMode = 'full';
+        let scanDuration = 60;
+        let scanStartTime = 0;
+        let scanTimerInterval = null;
+
+        // Init
+        (async () => {
+            try {
+                const res = await fetch('/api/info');
+                const info = await res.json();
+                document.getElementById('sys-info').innerText = `v${info.version} — ${info.model}`;
+            } catch(e) {}
+            loadHistory();
+        })();
+
+        async function startScan(mode) {
+            if (isRunning) return;
+            isRunning = true;
+            scanMode = mode;
+            scanDuration = mode === 'full' ? 60 : 10;
+            scanStartTime = Date.now();
+            document.getElementById('full-btn').disabled = true;
+            document.getElementById('quick-btn').disabled = true;
+            document.getElementById('cancel-btn').style.display = 'block';
+            document.getElementById('log-container').innerHTML = '';
+
+            updateVerdict('ANALYZING...', 'analyzing');
+            updateRing(0, 'var(--accent)');
+
+            // Show countdown timer
+            const timerEl = document.getElementById('scan-timer');
+            timerEl.style.display = 'block';
+            scanTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - scanStartTime) / 1000);
+                const remaining = Math.max(0, scanDuration - elapsed);
+                timerEl.innerText = remaining > 0 ? `~${remaining}s remaining` : 'Finalizing...';
+            }, 1000);
+
+            await fetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode }) });
+            pollStatus();
+        }
+
+        async function cancelScan() {
+            if (!isRunning) return;
+            await fetch('/api/cancel', { method: 'POST' });
+        }
+
+        async function pollStatus() {
+            const res = await fetch('/api/status');
+            const d = await res.json();
+
+            document.getElementById('progress').style.width = d.progress + '%';
+
+            if (d.metrics.cycle_count !== '--') document.getElementById('m-cycles').innerText = d.metrics.cycle_count;
+            if (d.metrics.health !== '--') document.getElementById('m-health').innerText = d.metrics.health;
+            if (d.metrics.qmax_var !== '--') document.getElementById('m-entropy').innerText = d.metrics.qmax_var + ' mAh';
+            if (d.metrics.ratio !== '--') document.getElementById('m-ratio').innerText = d.metrics.ratio;
+            if (d.metrics.op_time !== '--') document.getElementById('m-optime').innerText = d.metrics.op_time;
+            if (d.metrics.temperature && d.metrics.temperature !== '--') document.getElementById('m-temp').innerText = d.metrics.temperature;
+
+
+            // Serial
+            if (d.metrics.serial && d.metrics.serial !== '--') {
+                const sub = document.getElementById('sys-info');
+                if (!sub.innerText.includes('SN:')) {
+                    sub.innerText += ` | SN: ${d.metrics.serial}`;
+                }
+            }
+
+            if (d.status === 'complete') {
+                isRunning = false;
+                document.getElementById('full-btn').disabled = false;
+                document.getElementById('quick-btn').disabled = false;
+                document.getElementById('cancel-btn').style.display = 'none';
+
+                // Stop countdown
+                clearInterval(scanTimerInterval);
+                document.getElementById('scan-timer').style.display = 'none';
+
+                // Verdict
+                const vClass = d.verdict === 'SPOOFED' ? 'spoofed' :
+                               d.verdict === 'GENUINE' ? 'genuine' :
+                               d.verdict === 'CANCELLED' ? 'cancelled' : 'suspicious';
+                updateVerdict(d.verdict, vClass);
+
+                // Health Ring
+                const hs = d.health_score || 0;
+                updateRing(hs, hs >= 70 ? 'var(--green)' : hs >= 40 ? 'var(--orange)' : 'var(--red)');
+                document.getElementById('ring-score').innerText = hs;
+
+                // Trends
+                if (d.trends) {
+                    setTrend('t-cycles', d.trends.cycles);
+                    setTrend('t-health', d.trends.health);
+                    setTrend('t-optime', d.trends.op_time);
+                }
+
+                // Logs
+                const lc = document.getElementById('log-container');
+                lc.innerHTML = '';
+                d.log.forEach(item => {
+                    const icon = item.status === 'success' ? '✅' : (item.status === 'warning' ? '⚠️' : '❌');
+                    lc.innerHTML += `<div class="log-item fade-in">
+                        <div class="log-icon">${icon}</div>
+                        <div><div class="log-title ${item.status}">${item.title}</div>
+                        <div class="log-desc">${item.desc}</div></div></div>`;
+                });
+
+                loadHistory();
+            } else {
+                setTimeout(pollStatus, 1000);
+            }
+        }
+
+        function updateVerdict(text, cls) {
+            const b = document.getElementById('verdict-badge');
+            b.className = 'verdict-badge ' + cls;
+            b.innerText = text;
+        }
+
+        function updateRing(pct, color) {
+            const c = document.getElementById('ring-fill');
+            const offset = 502 - (502 * pct / 100);
+            c.style.strokeDashoffset = offset;
+            c.style.stroke = color;
+        }
+
+        function setTrend(id, trend) {
+            const el = document.getElementById(id);
+            if (!el || !trend) return;
+            const map = { up: ['↑', 'trend-up'], down: ['↓', 'trend-down'], stable: ['→', 'trend-stable'], frozen: ['⏸ Frozen', 'trend-frozen'] };
+            const [text, cls] = map[trend] || ['', ''];
+            el.className = 'card-trend ' + cls;
+            el.innerText = text;
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const logs = await res.json();
+                const tbody = document.getElementById('history-body');
+                if (logs.length > 0) {
+                    tbody.innerHTML = '';
+                    logs.slice(-10).reverse().forEach(e => {
+                        const date = new Date(e.timestamp).toLocaleDateString();
+                        const cycles = e.cycle_count || 0;
+                        const health = e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity ?
+                            Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100) + '%' : '—';
+                        const time = e.parsed.TotalOperatingTime || 0;
+                        const score = e.health_score || '—';
+                        tbody.innerHTML += `<tr><td>${date}</td><td>${cycles}</td><td>${health}</td><td>${score}</td><td>${time} hrs</td></tr>`;
+                    });
+                }
+            } catch(e) {}
+        }
+
+        async function enableAutomation() {
+            const days = document.getElementById('auto-days').value;
+            const timeStr = document.getElementById('auto-time').value;
+            if (!days || !timeStr) { alert('Enter valid days and time.'); return; }
+            const [h, m] = timeStr.split(':');
+            if (!confirm(`Schedule daily scan at ${timeStr} for ${days} days?`)) return;
+            try {
+                const res = await fetch('/api/automate', {
+                    method: 'POST',
+                    body: JSON.stringify({ days: parseInt(days), hour: parseInt(h), minute: parseInt(m) })
+                });
+                const data = await res.json();
+                alert(data.success ? 'Success: ' + data.msg : 'Error: ' + data.msg);
+            } catch(e) { alert('Error: ' + e); }
+        }
+
+        async function exportLogs() {
+            const res = await fetch('/api/export', { method: 'POST' });
+            const data = await res.json();
+            alert(data.success ? 'Exported to:\n' + data.msg : 'Error: ' + data.msg);
+        }
+
+        async function copyReport() {
+            try {
+                const res = await fetch('/api/share', { method: 'POST' });
+                const data = await res.json();
+                await navigator.clipboard.writeText(data.report);
+                alert('Report copied to clipboard!');
+            } catch(e) { alert('Error copying: ' + e); }
+        }
+
+        function showAbout() { document.getElementById('about-modal').classList.add('show'); }
+        function hideAbout() { document.getElementById('about-modal').classList.remove('show'); }
+    </script>
+</body>
+</html>

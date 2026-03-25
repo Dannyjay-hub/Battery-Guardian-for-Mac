@@ -66,9 +66,13 @@ else
     echo "    Warning: AppIcon.icns not found, skipping"
 fi
 
-# Copy Python script
-cp "$SCRIPT_DIR/battery_guardian_web.py" "$APP_BUNDLE/Contents/Resources/battery_guardian_web.py"
-echo "    Script: copied"
+# Copy Python modules and HTML template
+for f in battery_guardian_web.py bg_config.py bg_platform.py bg_state.py \
+          bg_history.py bg_analysis.py bg_scanner.py bg_automation.py \
+          bg_server.py bg_template.html; do
+    cp "$SCRIPT_DIR/$f" "$APP_BUNDLE/Contents/Resources/$f"
+done
+echo "    Scripts: copied"
 
 # --- 2. Create launcher shell script ---
 echo "[2/5] Creating launcher..."
