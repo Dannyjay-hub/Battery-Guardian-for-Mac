@@ -153,7 +153,7 @@
       pointer-events: none;
     }
     .mockup {
-      background: var(--panel);
+      background: #0D0D0F;
       border: 1px solid var(--border);
       border-radius: 16px;
       overflow: hidden;
@@ -161,7 +161,7 @@
       position: relative;
     }
     .mockup-bar {
-      background: var(--surface);
+      background: #1A1A1E;
       padding: 12px 16px;
       display: flex; align-items: center; gap: 8px;
       border-bottom: 1px solid var(--border);
@@ -178,43 +178,43 @@
     /* Fake UI inside mockup */
     .fake-header {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 40px;
     }
-    .fake-brand { font-size: 18px; font-weight: 700; }
+    .fake-brand { font-size: 20px; font-weight: 700; display:flex; gap: 6px; align-items: center; }
     .fake-brand-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
-    .fake-btns { display: flex; gap: 6px; }
-    .fake-icon { width: 30px; height: 30px; border-radius: 7px; background: var(--surface); border: 1px solid var(--border); }
+    .fake-btns { display: flex; gap: 8px; }
+    .fake-icon { width: 36px; height: 36px; border-radius: 8px; background: #1A1A1E; border: 1px solid var(--border); }
 
     .fake-ring-row {
       display: flex; flex-direction: column; align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
     }
     .fake-ring {
-      position: relative; width: 120px; height: 120px; margin-bottom: 12px;
+      position: relative; width: 140px; height: 140px; margin-bottom: 16px;
     }
-    .fake-ring svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+    .fake-ring svg { width: 140px; height: 140px; transform: rotate(-90deg); }
     .fake-ring-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
       text-align: center;
     }
-    .fake-ring-score { font-size: 32px; font-weight: 800; color: var(--green); }
-    .fake-ring-label { font-size: 9px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; }
+    .fake-ring-score { font-size: 38px; font-weight: 800; color: var(--green); letter-spacing:-1.5px; }
+    .fake-ring-label { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; }
     .fake-verdict {
-      background: rgba(48,209,88,0.12); color: var(--green);
-      border-radius: 20px; padding: 4px 14px;
+      background: rgba(48,209,88,0.12); color: var(--green); border: 1px solid rgba(48,209,88,0.3);
+      border-radius: 20px; padding: 5px 16px;
       font-size: 11px; font-weight: 700; letter-spacing: 1px;
     }
 
     .fake-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      margin-bottom: 18px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 24px;
     }
     .fake-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px;
+      background: #1A1A1E; border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
     }
-    .fake-card-label { font-size: 9px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .fake-card-val { font-size: 14px; font-weight: 700; font-family: "SF Mono", monospace; }
+    .fake-card-label { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .fake-card-val { font-size: 18px; font-weight: 700; font-family: "SF Mono", monospace; }
 
     .fake-log { display: flex; flex-direction: column; gap: 8px; }
     .fake-log-item { display: flex; align-items: flex-start; gap: 10px; }
@@ -449,8 +449,8 @@
         <div class="fake-ring-row">
           <div class="fake-ring">
             <svg viewBox="0 0 120 120">
-              <circle fill="none" stroke="#18181D" stroke-width="8" cx="60" cy="60" r="52"/>
-              <circle fill="none" stroke="#30D158" stroke-width="8" stroke-linecap="round"
+              <circle fill="none" stroke="#1A1A1E" stroke-width="10" cx="60" cy="60" r="52"/>
+              <circle fill="none" stroke="#30D158" stroke-width="10" stroke-linecap="round"
                 cx="60" cy="60" r="52"
                 stroke-dasharray="327" stroke-dashoffset="49"/>
             </svg>
