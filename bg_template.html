@@ -245,9 +245,9 @@
         <div class="history-section">
             <div class="section-title">History Log</div>
             <table class="history-table">
-                <thead><tr><th>Date</th><th>Serial</th><th>Cycles</th><th>Health</th><th>Score</th><th>Total Operating Time</th></tr></thead>
+                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Total Operating Time</th></tr></thead>
                 <tbody id="history-body">
-                    <tr><td colspan="6" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
+                    <tr><td colspan="4" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -292,7 +292,7 @@
                 const info = await res.json();
                 let txt = `v${info.version} — ${info.model}`;
                 if (info.serial && info.serial !== '--') {
-                    txt += ` | SN: ${info.serial}`;
+                    txt += ` | Battery S/N: ${info.serial}`;
                 }
                 document.getElementById('sys-info').innerText = txt;
             } catch(e) {}
@@ -348,8 +348,8 @@
             // Serial
             if (d.metrics.serial && d.metrics.serial !== '--') {
                 const sub = document.getElementById('sys-info');
-                if (!sub.innerText.includes('SN:')) {
-                    sub.innerText += ` | SN: ${d.metrics.serial}`;
+                if (!sub.innerText.includes('Battery S/N:')) {
+                    sub.innerText += ` | Battery S/N: ${d.metrics.serial}`;
                 }
             }
 
@@ -429,13 +429,12 @@
                     tbody.innerHTML = '';
                     logs.slice(-10).reverse().forEach(e => {
                         const date = new Date(e.timestamp).toLocaleDateString();
-                        const serial = e.serial || '—';
                         const cycles = e.cycle_count || 0;
                         const health = e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity ?
                             Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100) + '%' : '—';
                         const time = e.parsed.TotalOperatingTime || 0;
                         const score = e.health_score || '—';
-                        tbody.innerHTML += `<tr><td>${date}</td><td>${serial}</td><td>${cycles}</td><td>${health}</td><td>${score}</td><td>${time} hrs</td></tr>`;
+                        tbody.innerHTML += `<tr><td>${date}</td><td>${cycles}</td><td>${health}</td><td>${score}</td><td>${time} hrs</td></tr>`;
                     });
                 }
             } catch(e) {}
