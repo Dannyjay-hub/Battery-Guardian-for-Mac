@@ -24,12 +24,13 @@ class HistoryManager:
         return []
 
     @staticmethod
-    def save_scan(raw_text, parsed_data):
+    def save_scan(raw_text, parsed_data, health_score):
         history = HistoryManager.load()
         entry = {
             "timestamp": datetime.now().isoformat(),
             "serial": parsed_data.get("Serial", "Unknown"),
             "cycle_count": parsed_data.get("CycleCount", 0),
+            "health_score": health_score,
             "parsed": parsed_data,
             "raw_text_snippet": raw_text[:2000],
         }
@@ -48,8 +49,8 @@ class HistoryManager:
     @staticmethod
     def get_last_scan():
         history = HistoryManager.load()
-        if len(history) >= 2:
-            return history[-2]
+        if len(history) >= 1:
+            return history[-1]
         return None
 
     @staticmethod

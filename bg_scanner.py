@@ -47,7 +47,6 @@ def perform_scan(scan_mode="full"):
             raise Exception("No battery detected.")
         data = parse_ioreg(res.stdout)
 
-        HistoryManager.save_scan(res.stdout, data)
         last_scan = HistoryManager.get_last_scan()
 
         # Populate metrics
@@ -204,6 +203,8 @@ def perform_scan(scan_mode="full"):
 
         health_score = compute_health_score(data, score)
         trends = compute_trends(data, last_scan)
+        
+        HistoryManager.save_scan(res.stdout, data, health_score)
 
         with state_lock:
             state["log"] = log
