@@ -21,40 +21,33 @@ def check_platform():
 
 
 def get_mac_model():
-    """Get the Mac model name and chip."""
+    """Get the official Mac marketing name and chip (e.g. 'MacBook Air (M1, 2020)')."""
+    try:
+        import os
+        plist_path = os.path.expanduser("~/Library/Preferences/com.apple.SystemProfiler.plist")
+        res = subprocess.run(
+            ["defaults", "read", plist_path, "CPU Names"],
+            capture_output=True, text=True, timeout=2
+        )
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                if "=" in line:
+                    return line.split("=", 1)[1].strip(' ";')
+    except Exception:
+        pass
+
+    # Fallback to system_profiler SPHardwareDataType if the plist is unavailable
     try:
         res = subprocess.run(
             ["system_profiler", "SPHardwareDataType"],
             capture_output=True, text=True, timeout=10
         )
         model_name = ""
-        chip = ""
         for line in res.stdout.splitlines():
             line = line.strip()
             if "Model Name:" in line:
                 model_name = line.split(":", 1)[1].strip()
-            elif "Chip:" in line:
-                chip = line.split(":", 1)[1].strip()
-            elif "Processor Name:" in line and not chip:
-                chip = line.split(":", 1)[1].strip()
-        if model_name and chip:
-            res_str = f"{model_name} ({chip})"
-        elif model_name:
-            try:
-                res2 = subprocess.run(
-                    ["sysctl", "-n", "machdep.cpu.brand_string"],
-                    capture_output=True, text=True, timeout=2
-                )
-                sysctl_chip = res2.stdout.strip()
-                if sysctl_chip:
-                    res_str = f"{model_name} ({sysctl_chip})"
-                else:
-                    res_str = model_name
-            except Exception:
-                res_str = model_name
-        else:
-            res_str = "Mac"
-            
-        return res_str.replace("(Unknown)", "").replace("(unknown)", "").strip()
+        
+        return model_name if model_name else "Mac"
     except Exception:
         return "Mac"
