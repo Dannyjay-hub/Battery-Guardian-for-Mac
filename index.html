@@ -188,6 +188,20 @@
       padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
     }
 
+    .fake-auto {
+      background: #0D0D0F; border: 1px solid rgba(48,209,88,0.2);
+      border-radius: 12px; padding: 14px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px;
+    }
+    .fake-auto-title { font-size: 13px; font-weight: 700; color: var(--green); }
+    .fake-auto-controls { display: flex; align-items: center; gap: 12px; }
+    .fake-auto-label { font-size: 11px; color: var(--sub); }
+    .fake-auto-input {
+      background: #1A1A1E; border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 4px 8px; font-size: 12px; text-align: center;
+    }
+
     .fake-ring-row {
       display: flex; flex-direction: column; align-items: center;
       margin-bottom: 32px;
@@ -446,6 +460,20 @@
             <div class="fake-btn">Export Logs</div>
             <div class="fake-btn">Read Guide</div>
             <div class="fake-btn">About</div>
+          </div>
+        </div>
+
+        <div class="fake-auto">
+          <div>
+            <div class="fake-auto-title">⚡ Automate Daily Scans</div>
+            <div style="font-size: 11px; color: var(--sub); margin-top: 3px;">Run silently in the background</div>
+          </div>
+          <div class="fake-auto-controls">
+            <span class="fake-auto-label">Days:</span>
+            <div class="fake-auto-input" style="width: 44px">7</div>
+            <span class="fake-auto-label">Time:</span>
+            <div class="fake-auto-input">08:00 PM</div>
+            <div class="fake-btn" style="color: var(--green); border-color: rgba(48,209,88,0.3); background: rgba(48,209,88,0.05);">Enable</div>
           </div>
         </div>
 
