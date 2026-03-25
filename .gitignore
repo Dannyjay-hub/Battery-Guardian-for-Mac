@@ -19,3 +19,8 @@ battery-report.html
 # Temp files
 *.log
 *.err
+BatteryGuardian_v*.zip
+BatteryGuardian_v*.dmg
+build/
+dist/
+*.spec
