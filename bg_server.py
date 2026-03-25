@@ -43,7 +43,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            info = {"model": get_mac_model(), "version": VERSION}
+            last = HistoryManager.get_last_scan()
+            sn = last["parsed"].get("Serial", "--") if last and "parsed" in last else "--"
+            info = {"model": get_mac_model(), "version": VERSION, "serial": sn}
             self.wfile.write(json.dumps(info).encode())
         else:
             self.send_error(404)
