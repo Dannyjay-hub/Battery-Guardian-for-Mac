@@ -33,6 +33,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(HTML_TEMPLATE.encode())
+        elif self.path == "/guide.html":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(HTML_GUIDE.encode())
         elif self.path == "/api/status":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
