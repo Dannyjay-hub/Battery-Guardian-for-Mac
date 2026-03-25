@@ -49,6 +49,12 @@
             border-radius: 4px; font-family: "SF Mono", "Menlo", monospace; font-size: 13px; color: #5AC8FA;
         }
 
+        .nav-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text);
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; display: inline-flex;
+            font-size: 13px; font-weight: 600; margin-bottom: 24px; transition: all 0.2s;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); }
         .highlight-box {
             background: rgba(10,132,255,0.1); border-left: 4px solid var(--accent);
             padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;
@@ -63,6 +69,7 @@
 </head>
 <body>
     <div class="container">
+        <button class="nav-btn" onclick="window.location.href='/'">← Back to App</button>
         <h1>Battery Guardian Guide</h1>
         <div class="subtitle">Understanding Forensic Diagnostics & Health Grading (v{{VERSION}})</div>
 

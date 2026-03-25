@@ -169,7 +169,7 @@ def perform_scan(scan_mode="full"):
                 "status": "fail"})
 
         # Voltage Flatline
-        if samples:
+        if samples and duration >= 60:
             v_var = max(samples) - min(samples)
             if v_var == 0:
                 log.append({"title": "Live Sensors: Flatline Detected",
@@ -180,6 +180,10 @@ def perform_scan(scan_mode="full"):
                 log.append({"title": "Live Sensors: Active",
                     "desc": f"Voltage fluctuated by {v_var}mV during stress test. Sensors alive.",
                     "status": "success"})
+        elif samples:
+            log.append({"title": "Live Sensors: Skipped",
+                "desc": "Quick scan (10s) is too short to reliably test voltage entropy.",
+                "status": "warning"})
 
         # Odometer Rollback
         writes = data.get("DataFlashWriteCount", 0)

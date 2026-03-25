@@ -32,6 +32,12 @@
             transition: all 0.2s;
         }
         .icon-btn:hover { background: var(--panel-hover); color: var(--text); }
+        .nav-btn {
+            background: var(--panel); border: 1px solid var(--border); color: var(--text);
+            padding: 8px 14px; border-radius: 8px; cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: all 0.2s;
+        }
+        .nav-btn:hover { background: var(--panel-hover); border-color: rgba(255,255,255,0.15); }
 
         /* Health Ring */
         .health-ring-section {
@@ -188,10 +194,9 @@
                 <div class="brand-sub" id="sys-info">v{{VERSION}} — Loading...</div>
             </div>
             <div class="header-actions">
-                <button class="icon-btn" onclick="copyReport()" title="Copy Report">📋</button>
-                <button class="icon-btn" onclick="exportLogs()" title="Export Logs">📤</button>
-                <button class="icon-btn" onclick="window.open('/guide.html', '_blank')" title="Documentation Guide">📖</button>
-                <button class="icon-btn" onclick="showAbout()" title="Quick About">ℹ️</button>
+                <button class="nav-btn" onclick="exportLogs()">Export Logs</button>
+                <button class="nav-btn" onclick="window.location.href='/guide.html'">Read Guide</button>
+                <button class="nav-btn" onclick="showAbout()">About</button>
             </div>
         </div>
 
