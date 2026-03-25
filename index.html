@@ -183,22 +183,25 @@
     .fake-brand { font-size: 20px; font-weight: 700; display:flex; gap: 6px; align-items: center; }
     .fake-brand-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
     .fake-btns { display: flex; gap: 8px; }
-    .fake-icon { width: 36px; height: 36px; border-radius: 8px; background: #1A1A1E; border: 1px solid var(--border); }
+    .fake-btn { 
+      background: #1A1A1E; border: 1px solid var(--border); color: #86868B;
+      padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    }
 
     .fake-ring-row {
       display: flex; flex-direction: column; align-items: center;
       margin-bottom: 32px;
     }
     .fake-ring {
-      position: relative; width: 140px; height: 140px; margin-bottom: 16px;
+      position: relative; width: 170px; height: 170px; margin-bottom: 20px;
     }
-    .fake-ring svg { width: 140px; height: 140px; transform: rotate(-90deg); }
+    .fake-ring svg { width: 170px; height: 170px; transform: rotate(-90deg); }
     .fake-ring-center {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
       text-align: center;
     }
-    .fake-ring-score { font-size: 38px; font-weight: 800; color: var(--green); letter-spacing:-1.5px; }
-    .fake-ring-label { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; }
+    .fake-ring-score { font-size: 46px; font-weight: 800; color: var(--green); letter-spacing:-2px; line-height: 1; }
+    .fake-ring-label { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
     .fake-verdict {
       background: rgba(48,209,88,0.12); color: var(--green); border: 1px solid rgba(48,209,88,0.3);
       border-radius: 20px; padding: 5px 16px;
@@ -214,7 +217,7 @@
       border-radius: 12px; padding: 14px 16px;
     }
     .fake-card-label { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .fake-card-val { font-size: 18px; font-weight: 700; font-family: "SF Mono", monospace; }
+    .fake-card-val { font-size: 20px; font-weight: 700; font-family: "SF Mono", monospace; }
 
     .fake-log { display: flex; flex-direction: column; gap: 8px; }
     .fake-log-item { display: flex; align-items: flex-start; gap: 10px; }
@@ -440,17 +443,17 @@
             <div class="fake-brand-sub">v1.1 — MacBook Pro (M2 Pro) · SN: C02XK1J...</div>
           </div>
           <div class="fake-btns">
-            <div class="fake-icon"></div>
-            <div class="fake-icon"></div>
-            <div class="fake-icon"></div>
+            <div class="fake-btn">Export Logs</div>
+            <div class="fake-btn">Read Guide</div>
+            <div class="fake-btn">About</div>
           </div>
         </div>
 
         <div class="fake-ring-row">
           <div class="fake-ring">
             <svg viewBox="0 0 120 120">
-              <circle fill="none" stroke="#1A1A1E" stroke-width="10" cx="60" cy="60" r="52"/>
-              <circle fill="none" stroke="#30D158" stroke-width="10" stroke-linecap="round"
+              <circle fill="none" stroke="#1A1A1E" stroke-width="8" cx="60" cy="60" r="52"/>
+              <circle fill="none" stroke="#30D158" stroke-width="8" stroke-linecap="round"
                 cx="60" cy="60" r="52"
                 stroke-dasharray="327" stroke-dashoffset="49"/>
             </svg>
