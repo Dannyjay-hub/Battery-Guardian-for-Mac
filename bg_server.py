@@ -13,9 +13,14 @@ from bg_scanner import perform_scan
 from bg_automation import generate_share_report, install_launch_agent
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+
 with open(os.path.join(_HERE, "bg_template.html"), "r") as _f:
     _raw_template = _f.read()
 HTML_TEMPLATE = _raw_template.replace("{{VERSION}}", VERSION)
+
+with open(os.path.join(_HERE, "bg_guide.html"), "r") as _f:
+    _raw_guide = _f.read()
+HTML_GUIDE = _raw_guide.replace("{{VERSION}}", VERSION)
 
 
 class AppHandler(http.server.SimpleHTTPRequestHandler):

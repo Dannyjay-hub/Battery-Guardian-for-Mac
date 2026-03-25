@@ -69,7 +69,7 @@ fi
 # Copy Python modules and HTML template
 for f in battery_guardian_web.py bg_config.py bg_platform.py bg_state.py \
           bg_history.py bg_analysis.py bg_scanner.py bg_automation.py \
-          bg_server.py bg_template.html; do
+          bg_server.py bg_template.html bg_guide.html; do
     cp "$SCRIPT_DIR/$f" "$APP_BUNDLE/Contents/Resources/$f"
 done
 echo "    Scripts: copied"

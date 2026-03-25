@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battery Guardian — Technical Guide</title>
+    <style>
+        :root {
+            --bg: #0D0D0F; --panel: #1A1A1E;
+            --text: #F5F5F7; --sub: #86868B; --accent: #0A84FF;
+            --green: #30D158; --red: #FF453A; --orange: #FFD60A;
+            --border: rgba(255,255,255,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+            line-height: 1.6; padding: 40px 24px;
+            display: flex; justify-content: center;
+        }
+        .container { max-width: 800px; width: 100%; }
+
+        h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .subtitle { color: var(--sub); font-size: 15px; margin-bottom: 40px; }
+        
+        h2 { font-size: 22px; font-weight: 700; margin-top: 48px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        h3 { font-size: 16px; font-weight: 600; margin-top: 32px; margin-bottom: 8px; color: var(--text); }
+        
+        p { margin-bottom: 16px; font-size: 15px; color: rgba(255,255,255,0.8); }
+        ul { margin-bottom: 24px; margin-left: 20px; font-size: 15px; color: rgba(255,255,255,0.8); }
+        li { margin-bottom: 8px; }
+
+        .card {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; margin-bottom: 16px;
+        }
+        
+        .badge {
+            display: inline-block; padding: 4px 10px; border-radius: 6px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            margin-right: 8px; margin-bottom: 8px;
+        }
+        .badge.green { background: rgba(48,209,88,0.15); color: var(--green); border: 1px solid rgba(48,209,88,0.3); }
+        .badge.orange { background: rgba(255,214,10,0.15); color: var(--orange); border: 1px solid rgba(255,214,10,0.3); }
+        .badge.red { background: rgba(255,69,58,0.15); color: var(--red); border: 1px solid rgba(255,69,58,0.3); }
+
+        code {
+            background: rgba(255,255,255,0.1); padding: 2px 6px;
+            border-radius: 4px; font-family: "SF Mono", "Menlo", monospace; font-size: 13px; color: #5AC8FA;
+        }
+
+        .highlight-box {
+            background: rgba(10,132,255,0.1); border-left: 4px solid var(--accent);
+            padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;
+            font-size: 14px;
+        }
+
+        .metric-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Battery Guardian Guide</h1>
+        <div class="subtitle">Understanding Forensic Diagnostics & Health Grading (v{{VERSION}})</div>
+
+        <p>Welcome to Battery Guardian. This tool was built to uncover the hidden truth about your MacBook's battery. While macOS provides a simple "Normal" or "Service Recommended" label based on cycle count, <strong>Battery Guardian bypasses the operating system entirely</strong> and directly speaks to the Texas Instruments (TI) gas gauge hardware chip inside the battery.</p>
+
+        <div class="highlight-box">
+            <strong>Why is this necessary?</strong> The secondary market for MacBooks is flooded with devices carrying "fake" or "reprogrammed" batteries. Dishonest sellers use specialized hardware tools (like the JCID or NLBA1) to flash the firmware on aging batteries—resetting the cycle count to zero and forcing the health artificially to 100%—in order to sell worn-out Macs at a premium. Battery Guardian catches these operations mathematically.
+        </div>
+
+        <h2>1. The Health Score (100)</h2>
+        <p>The large number in the center ring is your Forensic Health Score. All batteries begin at <strong>100</strong>.</p>
+        <ul>
+            <li><strong>100 to 90 (Genuine & Healthy):</strong> The battery is functioning precisely as a real Apple battery should. All cryptographic and mathematical forensic checks pass perfectly.</li>
+            <li><strong>89 to 70 (Aging):</strong> The hardware checks passed, but the battery has experienced significant natural chemical aging. Point deductions scale with exactly how much total capacity has vanished.</li>
+            <li><strong>69 to 40 (Suspicious or Worn Out):</strong> The battery may be failing, triggering safety warnings, or exhibiting minor flags consistent with uncalibrated or cheap third-party cells without active spoofing.</li>
+            <li><strong>Below 40 (Spoofed / Forged):</strong> The algorithms detected a critical impossibility (e.g. frozen clocks, zero-entropy cells). The battery firmness has been actively tampered with by a malicious seller.</li>
+        </ul>
+
+        <h2>2. Core Hardware Metrics</h2>
+        <p>The top six cards show the raw metrics pulled specifically out of the TI firmware. Unlike normal apps, we parse these using strict root memory polling to prevent macOS smoothing layers.</p>
+
+        <div class="metric-grid">
+            <div class="card">
+                <h3>Cycles</h3>
+                <p>A cycle is one complete discharge and recharge. A genuine battery will legally age. Reprogrammers wipe this exactly to 0.</p>
+            </div>
+            <div class="card">
+                <h3>Health</h3>
+                <p>The precise ratio between your current true maximum capacity and the design capacity. We parse <code>AppleRawMaxCapacity</code>, ignoring software caps.</p>
+            </div>
+            <div class="card">
+                <h3>Entropy</h3>
+                <p>The mathematical gap in capacity between the strongest battery cell and the weakest battery cell. Real chemicals vary; reprogrammers hardcode the cells to be identical perfectly.</p>
+            </div>
+            <div class="card">
+                <h3>Write Ratio</h3>
+                <p>How many times the flash memory was written to relative to your cycle count. Serves as a great indicator of odometer discrepancies.</p>
+            </div>
+            <div class="card">
+                <h3>Total Operating Time</h3>
+                <p>The completely un-resettable internal clock ticking inside the battery itself. If your cycle count is 2 but operating time is 3 years, you've caught a scammer red-handed.</p>
+            </div>
+            <div class="card">
+                <h3>Temp</h3>
+                <p>Live reading of the internal thermistors. Third party batteries often wire cheap resistors instead of real thermistors, meaning temps will randomly flatline.</p>
+            </div>
+        </div>
+
+        <h2>3. Forensic Integrity Checks</h2>
+        <p>Battery Guardian runs several sophisticated algorithms looking for physical unlikeliness to prove a battery firmware has been forged. The results of these show up as success or failure events dynamically in the logs.</p>
+
+        <div class="card">
+            <span class="badge red">Fail Trigger</span>
+            <h3>Physics Violation: Zero Entropy</h3>
+            <p><strong>What it is:</strong> Lithium-ion cells are bags of chemicals. No two cells are identical, and they drift over time. If a battery has more than 5 cycles but claims 0 mAh cell variance (known as "Zero Entropy"), the TI chip is lying.</p>
+            <p><strong>Why it happens:</strong> When programmers flash fake capacities, they usually copy/paste a single fake capacity number recursively across the cell block variables. This is the hardest trick for scammers to hide.</p>
+        </div>
+
+        <div class="card">
+            <span class="badge red">Fail Trigger</span>
+            <h3>Firmware Hack: Lazy Cloning</h3>
+            <p><strong>What it is:</strong> Every battery design has an exact stated capacity (e.g. 4382 mAh). The current `Qmax` capacity will NEVER perfectly match the design capacity exactly, it normally deviates by at least 15 mAh out of the factory.</p>
+            <p><strong>Why it happens:</strong> Scammers press a "Copy Design to Qmax" button in their hacking software, overwriting the dynamic variable with a static constant. The app catches this identical match.</p>
+        </div>
+
+        <div class="card">
+            <span class="badge red">Fail Trigger</span>
+            <h3>Odometer Rollback</h3>
+            <p><strong>What it is:</strong> Battery Guardian looks at <code>DataFlashWriteCount</code> (the odometer of how many times the firmware was touched). On average, macOS triggers 14 writes per cycle. If you have 2 cycles but 5,000 flash writes, the cycle string was erased intentionally.</p>
+        </div>
+
+        <div class="card">
+            <span class="badge red">Fail Trigger</span>
+            <h3>Live Sensors: Flatline Detected</h3>
+            <p><strong>What it is:</strong> When you press "Full Scan", Battery Guardian stress tests the <code>CellVoltage</code> output for 60 seconds.</p>
+            <p><strong>Why it happens:</strong> Fake chips broadcast a static, unchanging decimal output under load. Real lithium chemically sags and floats by a few millivolts every second.</p>
+        </div>
+
+        <div class="card">
+            <span class="badge red">Fail Trigger</span>
+            <h3>Time Paradox: Frozen Clock</h3>
+            <p><strong>What it is:</strong> Sometimes, scammers don't reset the cycle count—they instead sever the main timing trace so the <code>TotalOperatingTime</code> clock stops ticking forever, making a multi-year battery look perpetually "brand new".</p>
+        </div>
+        
+        <h2>Frequently Asked Questions</h2>
+        <p><strong>Q: My score is 70 but the verdict is still "Genuine". Is my battery okay?</strong><br>Yes. 70 simply means you have an old, worn battery that has lost some charge capacity. It is legally old, not dangerously forged.</p>
+
+        <p><strong>Q: Should I run Scans daily?</strong><br>Only if you are actively documenting the decline of a suspicious battery. Otherwise, running a scan once a week using the Automation tab is perfect for keeping a historical ledger in case you want to sell the laptop later.</p>
+        
+        <p><strong>Q: Will using Battery Guardian drain my battery?</strong><br>No. Reading the standard system IORegistry is a zero-impact query. Even the 60s stress test just pulls a fast refresh interval, taking less CPU resource than opening a single web page.</p>
+        
+        <br><br><br>
+        <div style="text-align: center; color: var(--sub); font-size: 13px;">
+            Battery Guardian v{{VERSION}} — Built by @Dannyjay-hub
+        </div>
+    </div>
+</body>
+</html>
