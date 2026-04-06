@@ -5,7 +5,7 @@
 set -e
 
 APP_NAME="Battery Guardian"
-VERSION="1.1"
+VERSION="1.3"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 DIST_DIR="$SCRIPT_DIR/dist"

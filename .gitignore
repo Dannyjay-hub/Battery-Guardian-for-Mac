@@ -24,3 +24,9 @@ BatteryGuardian_v*.dmg
 build/
 dist/
 *.spec
+
+# Exported scan logs (personal data, not part of the repo)
+battery_guardian_logs*.json
+
+# One-off debug / verification scripts
+verify*.py

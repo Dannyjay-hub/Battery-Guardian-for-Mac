@@ -25,9 +25,11 @@ state = {
         "write_count": "--",
         "qmax_var": "--",
         "op_time": "--",
+        "op_time_raw": 0,
         "health": "--",
         "ratio": "--",
         "serial": "--",
         "temperature": "--",
+        "manufacture_date": "--",
     },
 }

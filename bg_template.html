@@ -25,13 +25,6 @@
         .brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
         .brand-sub { color: var(--sub); font-size: 13px; margin-top: 3px; }
         .header-actions { display: flex; gap: 8px; }
-        .icon-btn {
-            background: var(--panel); border: 1px solid var(--border); color: var(--sub);
-            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 16px;
-            transition: all 0.2s;
-        }
-        .icon-btn:hover { background: var(--panel-hover); color: var(--text); }
         .nav-btn {
             background: var(--panel); border: 1px solid var(--border); color: var(--text);
             padding: 8px 14px; border-radius: 8px; cursor: pointer;
@@ -42,7 +35,7 @@
         /* Health Ring */
         .health-ring-section {
             display: flex; flex-direction: column; align-items: center;
-            padding: 32px 0; margin-bottom: 24px;
+            padding: 32px 0 20px;
         }
         .ring-container { position: relative; width: 180px; height: 180px; }
         .ring-svg { width: 180px; height: 180px; transform: rotate(-90deg); }
@@ -73,6 +66,16 @@
         .verdict-badge.cancelled { background: rgba(134,134,139,0.15); color: var(--sub); }
         .verdict-badge.ready { background: var(--panel); color: var(--sub); }
 
+        /* Re-scan button */
+        .rescan-btn {
+            display: none; width: 100%; padding: 11px; border-radius: 10px;
+            background: var(--panel); border: 1px solid var(--border);
+            color: var(--accent); font-size: 13px; font-weight: 600;
+            cursor: pointer; margin-top: 14px; transition: all 0.2s;
+        }
+        .rescan-btn:hover { background: var(--panel-hover); border-color: rgba(10,132,255,0.4); }
+        .rescan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
         /* Cards Grid */
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
         .card {
@@ -88,35 +91,19 @@
         .trend-stable { color: var(--sub); }
         .trend-frozen { color: var(--red); }
 
-        /* Scan Buttons */
-        .scan-controls { display: flex; gap: 10px; margin-bottom: 24px; }
-        .scan-btn {
-            flex: 1; padding: 14px; border: none; border-radius: 12px;
-            font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-        }
-        .scan-btn.primary { background: var(--accent); color: white; }
-        .scan-btn.primary:hover { background: #0070E0; }
-        .scan-btn.secondary { background: var(--panel); color: var(--accent); border: 1px solid var(--border); }
-        .scan-btn.secondary:hover { background: var(--panel-hover); }
-        .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .cancel-btn {
-            padding: 14px; background: rgba(255,69,58,0.12); color: var(--red);
-            border: 1px solid rgba(255,69,58,0.3); border-radius: 12px;
-            font-size: 15px; font-weight: 700; cursor: pointer; display: none;
-        }
-
         /* Progress */
-        .progress-wrap { background: var(--panel); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 24px; }
+        .progress-wrap { background: var(--panel); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 24px; margin-top: 20px; }
         .progress-bar { background: linear-gradient(90deg, var(--accent), #5AC8FA); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 3px; }
 
         /* Log Items */
-        .log-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .log-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
         .log-icon { font-size: 18px; flex-shrink: 0; }
-        .log-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+        .log-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
         .log-title.success { color: var(--green); }
         .log-title.fail { color: var(--red); }
         .log-title.warning { color: var(--orange); }
-        .log-desc { font-size: 12px; color: var(--sub); line-height: 1.5; }
+        .log-title.info { color: #5AC8FA; }
+        .log-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
 
         /* Automation */
         .auto-section {
@@ -140,10 +127,21 @@
 
         /* History */
         .history-section { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 8px; }
-        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .section-title { font-size: 16px; font-weight: 700; }
+        .toggle-detail-btn {
+            background: none; border: none; color: var(--accent);
+            font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;
+        }
+        .toggle-detail-btn:hover { opacity: 0.8; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .history-table th { text-align: left; color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .history-table td { padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .detail-table-wrap {
+            display: none; margin-top: 20px; padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .detail-section-title { font-size: 13px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 
         /* Footer */
         .footer { text-align: center; padding: 24px 0; font-size: 11px; color: var(--sub); }
@@ -167,16 +165,13 @@
         }
 
         /* No Battery Screen */
-        .no-battery {
-            text-align: center; padding: 80px 20px;
-        }
+        .no-battery { text-align: center; padding: 80px 20px; }
         .no-battery-icon { font-size: 64px; margin-bottom: 20px; }
         .no-battery h2 { font-size: 22px; margin-bottom: 12px; }
         .no-battery p { color: var(--sub); font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
 
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
         .fade-in { animation: fadeIn 0.4s ease; }
 
         /* Responsive */
@@ -214,6 +209,7 @@
             </div>
         </div>
 
+        <!-- Health ring + verdict -->
         <div class="health-ring-section">
             <div class="ring-container">
                 <svg class="ring-svg" viewBox="0 0 180 180">
@@ -225,37 +221,51 @@
                     <div class="ring-label">Health Score</div>
                 </div>
             </div>
-            <div class="verdict-badge ready" id="verdict-badge">Ready to Scan</div>
+            <div class="verdict-badge analyzing" id="verdict-badge">Analyzing...</div>
+            <!-- Re-scan sits directly under the verdict, before the progress bar -->
+            <button class="rescan-btn" id="rescan-btn" onclick="startScan()">↺ Re-scan</button>
         </div>
 
         <div class="progress-wrap"><div class="progress-bar" id="progress"></div></div>
 
+        <!-- Metric cards -->
         <div class="grid">
             <div class="card"><div class="card-label">Cycles</div><div class="card-value" id="m-cycles">—</div><div class="card-trend" id="t-cycles"></div></div>
             <div class="card"><div class="card-label">Health</div><div class="card-value" id="m-health">—</div><div class="card-trend" id="t-health"></div></div>
             <div class="card"><div class="card-label">Entropy</div><div class="card-value" id="m-entropy">—</div></div>
+            <div class="card"><div class="card-label">Battery Made</div><div class="card-value" id="m-mfrdate">—</div><div class="card-trend" id="t-optime"></div></div>
             <div class="card"><div class="card-label">Write Ratio</div><div class="card-value" id="m-ratio">—</div></div>
-            <div class="card"><div class="card-label">TOTAL OPERATING TIME</div><div class="card-value" id="m-optime">—</div><div class="card-trend" id="t-optime"></div></div>
             <div class="card"><div class="card-label">Temp</div><div class="card-value" id="m-temp">—</div></div>
         </div>
 
-        <div class="scan-controls">
-            <button class="scan-btn primary" id="full-btn" onclick="startScan('full')">Full Scan (60s)</button>
-            <button class="scan-btn secondary" id="quick-btn" onclick="startScan('quick')">Quick Scan (10s)</button>
-            <button class="cancel-btn" id="cancel-btn" onclick="cancelScan()">Cancel</button>
-        </div>
-        <div id="scan-timer" style="text-align:center;font-size:12px;color:var(--sub);margin-top:-16px;margin-bottom:16px;display:none"></div>
-
+        <!-- Forensic log -->
         <div id="log-container"></div>
 
+        <!-- History -->
         <div class="history-section">
-            <div class="section-title">History Log</div>
-            <table class="history-table">
-                <thead><tr><th>Date</th><th>Cycles</th><th>Health</th><th>Score</th><th>Total Operating Time</th></tr></thead>
+            <div class="history-header">
+                <div class="section-title">History Log</div>
+                <button class="toggle-detail-btn" id="toggle-detail-btn" onclick="toggleDetail()">View all entries ↓</button>
+            </div>
+
+            <!-- Monthly summary table -->
+            <table class="history-table" id="monthly-table">
+                <thead><tr><th>Month</th><th>Avg Health</th><th>Cycles</th><th>Avg Score</th><th>Scans</th></tr></thead>
                 <tbody id="history-body">
-                    <tr><td colspan="4" style="color:var(--sub)">No history yet. Run a scan.</td></tr>
+                    <tr><td colspan="5" style="color:var(--sub)">No history yet.</td></tr>
                 </tbody>
             </table>
+
+            <!-- Detailed per-scan table (expandable) -->
+            <div class="detail-table-wrap" id="detail-table-wrap">
+                <div class="detail-section-title">All Individual Scans</div>
+                <table class="history-table">
+                    <thead><tr><th>Date &amp; Time</th><th>Cycles</th><th>Health</th><th>Score</th><th>Verified Op. Time</th></tr></thead>
+                    <tbody id="detail-history-body">
+                        <tr><td colspan="5" style="color:var(--sub)">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="footer">
@@ -263,11 +273,11 @@
         </div>
     </div>
 
-    <!-- No Battery Screen (hidden by default) -->
+    <!-- No Battery Screen -->
     <div class="no-battery" id="no-battery" style="display:none">
         <div class="no-battery-icon">🖥️</div>
         <h2>No Battery Detected</h2>
-        <p>Battery Guardian requires a MacBook with a built-in battery. This device (Mac Mini, iMac, Mac Pro, or Mac Studio) doesn't have a battery to analyze.</p>
+        <p>Battery Guardian requires a MacBook with a built-in battery. This device doesn't have a battery to analyze.</p>
     </div>
 
     <!-- About Modal -->
@@ -275,23 +285,24 @@
         <div class="modal">
             <h2>About Battery Guardian</h2>
             <p><strong>Battery Guardian</strong> is a forensic tool that detects counterfeit, reprogrammed, or spoofed MacBook batteries by analyzing the Texas Instruments gas gauge chip data.</p>
-            <p><strong>Health Score:</strong> A composite 0-100 rating combining capacity, cycle count, and spoof indicators.</p>
-            <p><strong>Entropy Check:</strong> Verifies that individual cells have natural capacity variance (spoofed batteries show zero).</p>
-            <p><strong>Live Sensor Test:</strong> Monitors voltage fluctuation in real-time. Real batteries fluctuate; fakes show flatlines.</p>
-            <p><strong>Odometer Check:</strong> Compares cycle count against flash write count to detect resets.</p>
-            <p><strong>Time Paradox:</strong> Detects if the internal clock has been frozen to hide the battery's true age.</p>
+            <p><strong>Health Score:</strong> A composite 0–100 rating combining capacity, cycle count, and spoof indicators.</p>
+            <p><strong>Physics Check (Zero Entropy):</strong> Verifies that individual cells have natural capacity variance. Spoofed batteries hardcode identical values across all three cells.</p>
+            <p><strong>Internal Resistance:</strong> Compares chemical capacity (Qmax) vs deliverable capacity (FCC). After 30+ cycles, a genuine battery always shows a measurable impedance gap.</p>
+            <p><strong>Lazy Clone:</strong> Checks whether Qmax exactly matches Design Capacity — the most common DataFlash hack to fake 100% health.</p>
+            <p><strong>DOD0 Calibration:</strong> Verifies the depth-of-discharge calibration record is genuine. A DOD0 equal to Design Capacity is fabricated — real calibrations always discharge slightly less.</p>
+            <p><strong>Clock Integrity:</strong> Cross-checks two independent TI chip counters. A discrepancy ≥20% means a counter was reset to hide the battery's real age.</p>
+            <p><strong>Calibration Paradox:</strong> CycleCountLastQmax can never exceed CycleCount. If it does, the cycle counter was reset — physically impossible without tampering.</p>
+            <p><strong>Chip Origin:</strong> A 3-cell MacBook pack cannot drop below 9,000mV (TI CUV floor). A lower MaximumPackVoltage means the chip came from a 2-cell device.</p>
+            <p><strong>Frozen Clock:</strong> TotalOperatingTime must increment continuously. If unchanged in 30+ hours between scans, the firmware counter is disabled or spoofed.</p>
             <button class="modal-close" onclick="hideAbout()">Close</button>
         </div>
     </div>
 
     <script>
         let isRunning = false;
-        let scanMode = 'full';
-        let scanDuration = 60;
-        let scanStartTime = 0;
-        let scanTimerInterval = null;
+        let detailLoaded = false;
 
-        // Init
+        // ── Init: restore last result or auto-scan ────────────────────────
         (async () => {
             try {
                 const res = await fetch('/api/info');
@@ -302,39 +313,36 @@
                 }
                 document.getElementById('sys-info').innerText = txt;
             } catch(e) {}
+
+            try {
+                const res = await fetch('/api/status');
+                const d = await res.json();
+                if (d.status === 'complete' && d.log && d.log.length > 0) {
+                    renderResult(d);
+                    loadHistory();
+                    return;
+                }
+            } catch(e) {}
+
             loadHistory();
+            startScan();
         })();
 
-        async function startScan(mode) {
+        async function startScan() {
             if (isRunning) return;
             isRunning = true;
-            scanMode = mode;
-            scanDuration = mode === 'full' ? 60 : 10;
-            scanStartTime = Date.now();
-            document.getElementById('full-btn').disabled = true;
-            document.getElementById('quick-btn').disabled = true;
-            document.getElementById('cancel-btn').style.display = 'block';
+
+            const rb = document.getElementById('rescan-btn');
+            rb.style.display = 'none';
+            rb.disabled = true;
             document.getElementById('log-container').innerHTML = '';
 
             updateVerdict('ANALYZING...', 'analyzing');
             updateRing(0, 'var(--accent)');
+            document.getElementById('progress').style.width = '0%';
 
-            // Show countdown timer
-            const timerEl = document.getElementById('scan-timer');
-            timerEl.style.display = 'block';
-            scanTimerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - scanStartTime) / 1000);
-                const remaining = Math.max(0, scanDuration - elapsed);
-                timerEl.innerText = remaining > 0 ? `~${remaining}s remaining` : 'Finalizing...';
-            }, 1000);
-
-            await fetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode }) });
+            await fetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode: 'full' }) });
             pollStatus();
-        }
-
-        async function cancelScan() {
-            if (!isRunning) return;
-            await fetch('/api/cancel', { method: 'POST' });
         }
 
         async function pollStatus() {
@@ -347,9 +355,27 @@
             if (d.metrics.health !== '--') document.getElementById('m-health').innerText = d.metrics.health;
             if (d.metrics.qmax_var !== '--') document.getElementById('m-entropy').innerText = d.metrics.qmax_var + ' mAh';
             if (d.metrics.ratio !== '--') document.getElementById('m-ratio').innerText = d.metrics.ratio;
-            if (d.metrics.op_time !== '--') document.getElementById('m-optime').innerText = d.metrics.op_time;
             if (d.metrics.temperature && d.metrics.temperature !== '--') document.getElementById('m-temp').innerText = d.metrics.temperature;
+            if (d.metrics.manufacture_date && d.metrics.manufacture_date !== '--') document.getElementById('m-mfrdate').innerText = d.metrics.manufacture_date;
 
+            if (d.status === 'complete') {
+                isRunning = false;
+                renderResult(d);
+                loadHistory();
+                if (detailLoaded) populateDetailHistory();
+            } else {
+                setTimeout(pollStatus, 200);
+            }
+        }
+
+        function renderResult(d) {
+            // Metrics
+            if (d.metrics.cycle_count !== '--') document.getElementById('m-cycles').innerText = d.metrics.cycle_count;
+            if (d.metrics.health !== '--') document.getElementById('m-health').innerText = d.metrics.health;
+            if (d.metrics.qmax_var !== '--') document.getElementById('m-entropy').innerText = d.metrics.qmax_var + ' mAh';
+            if (d.metrics.ratio !== '--') document.getElementById('m-ratio').innerText = d.metrics.ratio;
+            if (d.metrics.temperature && d.metrics.temperature !== '--') document.getElementById('m-temp').innerText = d.metrics.temperature;
+            if (d.metrics.manufacture_date && d.metrics.manufacture_date !== '--') document.getElementById('m-mfrdate').innerText = d.metrics.manufacture_date;
 
             // Serial
             if (d.metrics.serial && d.metrics.serial !== '--') {
@@ -359,49 +385,39 @@
                 }
             }
 
-            if (d.status === 'complete') {
-                isRunning = false;
-                document.getElementById('full-btn').disabled = false;
-                document.getElementById('quick-btn').disabled = false;
-                document.getElementById('cancel-btn').style.display = 'none';
+            // Verdict + ring
+            const vClass = d.verdict === 'SPOOFED' ? 'spoofed' :
+                           d.verdict === 'GENUINE' ? 'genuine' :
+                           d.verdict === 'CANCELLED' ? 'cancelled' : 'suspicious';
+            updateVerdict(d.verdict, vClass);
+            const hs = d.health_score || 0;
+            updateRing(hs, hs >= 70 ? 'var(--green)' : hs >= 40 ? 'var(--orange)' : 'var(--red)');
+            document.getElementById('ring-score').innerText = hs;
 
-                // Stop countdown
-                clearInterval(scanTimerInterval);
-                document.getElementById('scan-timer').style.display = 'none';
-
-                // Verdict
-                const vClass = d.verdict === 'SPOOFED' ? 'spoofed' :
-                               d.verdict === 'GENUINE' ? 'genuine' :
-                               d.verdict === 'CANCELLED' ? 'cancelled' : 'suspicious';
-                updateVerdict(d.verdict, vClass);
-
-                // Health Ring
-                const hs = d.health_score || 0;
-                updateRing(hs, hs >= 70 ? 'var(--green)' : hs >= 40 ? 'var(--orange)' : 'var(--red)');
-                document.getElementById('ring-score').innerText = hs;
-
-                // Trends
-                if (d.trends) {
-                    setTrend('t-cycles', d.trends.cycles);
-                    setTrend('t-health', d.trends.health);
-                    setTrend('t-optime', d.trends.op_time);
-                }
-
-                // Logs
-                const lc = document.getElementById('log-container');
-                lc.innerHTML = '';
-                d.log.forEach(item => {
-                    const icon = item.status === 'success' ? '✅' : (item.status === 'warning' ? '⚠️' : '❌');
-                    lc.innerHTML += `<div class="log-item fade-in">
-                        <div class="log-icon">${icon}</div>
-                        <div><div class="log-title ${item.status}">${item.title}</div>
-                        <div class="log-desc">${item.desc}</div></div></div>`;
-                });
-
-                loadHistory();
-            } else {
-                setTimeout(pollStatus, 1000);
+            // Trends
+            if (d.trends) {
+                setTrend('t-cycles', d.trends.cycles);
+                setTrend('t-health', d.trends.health);
+                setTrend('t-optime', d.trends.op_time);
             }
+
+            document.getElementById('progress').style.width = '100%';
+
+            // Log entries
+            const lc = document.getElementById('log-container');
+            lc.innerHTML = '';
+            d.log.forEach(item => {
+                const icon = item.status === 'success' ? '✅' : item.status === 'warning' ? '⚠️' : item.status === 'info' ? 'ℹ️' : '❌';
+                lc.innerHTML += `<div class="log-item fade-in">
+                    <div class="log-icon">${icon}</div>
+                    <div><div class="log-title ${item.status}">${item.title}</div>
+                    <div class="log-desc">${item.desc}</div></div></div>`;
+            });
+
+            // Show Re-scan button
+            const rb = document.getElementById('rescan-btn');
+            rb.style.display = 'block';
+            rb.disabled = false;
         }
 
         function updateVerdict(text, cls) {
@@ -426,24 +442,81 @@
             el.innerText = text;
         }
 
+        // ── History: monthly summary ──────────────────────────────────────
         async function loadHistory() {
             try {
                 const res = await fetch('/api/history');
                 const logs = await res.json();
                 const tbody = document.getElementById('history-body');
-                if (logs.length > 0) {
-                    tbody.innerHTML = '';
-                    logs.slice(-10).reverse().forEach(e => {
-                        const date = new Date(e.timestamp).toLocaleDateString();
-                        const cycles = e.cycle_count || 0;
-                        const health = e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity ?
-                            Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100) + '%' : '—';
-                        const time = e.parsed.TotalOperatingTime || 0;
-                        const score = e.health_score || '—';
-                        tbody.innerHTML += `<tr><td>${date}</td><td>${cycles}</td><td>${health}</td><td>${score}</td><td>${time} hrs</td></tr>`;
-                    });
-                }
+                if (!logs || logs.length === 0) return;
+
+                // Group by YYYY-MM
+                const monthly = {};
+                logs.forEach(e => {
+                    const month = (e.timestamp || '').slice(0, 7);
+                    if (!month) return;
+                    if (!monthly[month]) monthly[month] = { healthSum: 0, cycleMax: 0, scoreSum: 0, count: 0 };
+                    const g = monthly[month];
+                    if (e.parsed && e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity) {
+                        g.healthSum += Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100);
+                    }
+                    g.cycleMax = Math.max(g.cycleMax, e.cycle_count || 0);
+                    g.scoreSum += (e.health_score || 0);
+                    g.count++;
+                });
+
+                const months = Object.keys(monthly).sort().reverse();
+                tbody.innerHTML = '';
+                months.forEach(m => {
+                    const g = monthly[m];
+                    const avgHealth = g.count > 0 ? Math.round(g.healthSum / g.count) + '%' : '—';
+                    const avgScore = g.count > 0 ? Math.round(g.scoreSum / g.count) : '—';
+                    tbody.innerHTML += `<tr>
+                        <td>${m}</td><td>${avgHealth}</td><td>${g.cycleMax}</td>
+                        <td>${avgScore}</td><td style="color:var(--sub)">${g.count}</td></tr>`;
+                });
             } catch(e) {}
+        }
+
+        // ── History: detailed per-scan view ───────────────────────────────
+        async function populateDetailHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const logs = await res.json();
+                const tbody = document.getElementById('detail-history-body');
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--sub)">No entries yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                logs.slice().reverse().forEach(e => {
+                    const date = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
+                    const cycles = e.cycle_count || 0;
+                    const health = e.parsed && e.parsed.AppleRawMaxCapacity && e.parsed.DesignCapacity
+                        ? Math.round((e.parsed.AppleRawMaxCapacity / e.parsed.DesignCapacity) * 100) + '%' : '—';
+                    const score = e.health_score !== undefined ? e.health_score : '—';
+                    const opTime = e.parsed && e.parsed.TotalOperatingTime
+                        ? Math.round(e.parsed.TotalOperatingTime) + ' hrs' : '—';
+                    tbody.innerHTML += `<tr>
+                        <td>${date}</td><td>${cycles}</td><td>${health}</td>
+                        <td>${score}</td><td style="color:var(--sub)">${opTime}</td></tr>`;
+                });
+                detailLoaded = true;
+            } catch(e) {}
+        }
+
+        function toggleDetail() {
+            const wrap = document.getElementById('detail-table-wrap');
+            const btn = document.getElementById('toggle-detail-btn');
+            const shown = wrap.style.display !== 'none' && wrap.style.display !== '';
+            if (shown) {
+                wrap.style.display = 'none';
+                btn.innerText = 'View all entries ↓';
+            } else {
+                wrap.style.display = 'block';
+                btn.innerText = 'Hide entries ↑';
+                if (!detailLoaded) populateDetailHistory();
+            }
         }
 
         async function enableAutomation() {

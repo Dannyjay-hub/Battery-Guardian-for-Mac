@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
-Mac Battery Guardian v1.1
-A native macOS battery forensics tool.
+Battery Guardian v1.3 — Entry Point
+=====================================
+Starts the embedded HTTP server and opens the forensic UI in a native
+pywebview window (or falls back to the system browser).
+
+Modes:
+  Default (GUI)       — Starts server + opens native window
+  --auto              — Headless scan for LaunchAgent scheduled runs
+  --enable-automation — Installs a macOS LaunchAgent for daily scans
+  --no-window         — Opens in browser instead of native window
 """
 
 import json
