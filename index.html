@@ -391,6 +391,45 @@
     .footer-links a { font-size: 13px; color: var(--sub); transition: color 0.15s; }
     .footer-links a:hover { color: var(--text); }
 
+    /* ── STORY ── */
+    .story-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px;
+      margin-top: 40px;
+      position: relative; overflow: hidden;
+    }
+    .story-card::before {
+      content: '\201C';
+      position: absolute; top: 16px; left: 28px;
+      font-size: 120px; font-weight: 900; line-height: 1;
+      color: rgba(10,132,255,0.08);
+      font-family: Georgia, serif; pointer-events: none;
+    }
+    .story-body { position: relative; }
+    .story-body p {
+      font-size: 16px; color: rgba(255,255,255,0.82);
+      line-height: 1.75; margin-bottom: 18px;
+    }
+    .story-body p:last-child { margin-bottom: 32px; }
+    .story-body code {
+      background: rgba(255,255,255,0.1); padding: 2px 6px;
+      border-radius: 4px; font-family: "SF Mono", monospace; font-size: 14px; color: #5AC8FA;
+    }
+    .story-author {
+      display: flex; align-items: center; gap: 14px;
+      padding-top: 24px; border-top: 1px solid var(--border);
+    }
+    .story-avatar {
+      width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), #30D158);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: white;
+    }
+    .story-name { font-size: 14px; font-weight: 700; }
+    .story-role { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 700px) {
       /* Nav */
@@ -628,7 +667,30 @@
   </div>
 </section>
 
+<!-- ORIGIN STORY -->
+<section class="story-section">
+  <div class="section-inner" style="max-width: 780px;">
+    <div class="section-tag">Why This Exists</div>
+    <div class="story-card">
+      <div class="story-body">
+        <p>In January 2025, I replaced the battery on my MacBook at Computer Village in Lagos. The seller showed me everything upfront: 100% health, 0 cycles, manufactured just 19 days ago. I paid and left.</p>
+        <p>But something was wrong. My MacBook used to last 18 hours on a full charge. This battery barely lasted 3. I opened CoconutBattery a week later: still 19 days old. Another week passed: still 19 days old. Every single day, the date was silently shifting forward to stay exactly 19 days in the past.</p>
+        <p>I pulled the raw chip data from the terminal. <code>TotalOperatingTime</code> read 483 hours, exactly 19 days, and it never moved. Not by a single hour. The battery had been reprogrammed to look brand new. It worked. It just was not what I paid for.</p>
+        <p>That sent me deep into the Texas Instruments documentation for how these chips are actually programmed. I learned what every register means, what values are physically possible, and what combinations are mathematical impossibilities. Then I built Battery Guardian.</p>
+      </div>
+      <div class="story-author">
+        <div class="story-avatar">DJ</div>
+        <div>
+          <div class="story-name">Daniel Jesuegun</div>
+          <div class="story-role">Creator, Battery Guardian</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- CHECKS -->
+
 <section id="checks">
   <div class="section-inner">
     <div class="section-tag">Forensic Checks</div>

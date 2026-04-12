@@ -186,7 +186,7 @@
         <div class="header">
             <div class="brand">
                 <h1>🔋 Battery Guardian</h1>
-                <div class="brand-sub" id="sys-info">v{{VERSION}} — Loading...</div>
+                <div class="brand-sub" id="sys-info">v{{VERSION}} | Loading...</div>
             </div>
             <div class="header-actions">
                 <button class="nav-btn" onclick="exportLogs()">Export Logs</button>
@@ -288,10 +288,10 @@
             <p><strong>Health Score:</strong> A composite 0–100 rating combining capacity, cycle count, and spoof indicators.</p>
             <p><strong>Physics Check (Zero Entropy):</strong> Verifies that individual cells have natural capacity variance. Spoofed batteries hardcode identical values across all three cells.</p>
             <p><strong>Internal Resistance:</strong> Compares chemical capacity (Qmax) vs deliverable capacity (FCC). After 30+ cycles, a genuine battery always shows a measurable impedance gap.</p>
-            <p><strong>Lazy Clone:</strong> Checks whether Qmax exactly matches Design Capacity — the most common DataFlash hack to fake 100% health.</p>
-            <p><strong>DOD0 Calibration:</strong> Verifies the depth-of-discharge calibration record is genuine. A DOD0 equal to Design Capacity is fabricated — real calibrations always discharge slightly less.</p>
+            <p><strong>Lazy Clone:</strong> Checks whether Qmax exactly matches Design Capacity, the most common DataFlash hack to fake 100% health.</p>
+            <p><strong>DOD0 Calibration:</strong> Verifies the depth-of-discharge calibration record is genuine. A DOD0 equal to Design Capacity is fabricated, as real calibrations always discharge slightly less.</p>
             <p><strong>Clock Integrity:</strong> Cross-checks two independent TI chip counters. A discrepancy ≥20% means a counter was reset to hide the battery's real age.</p>
-            <p><strong>Calibration Paradox:</strong> CycleCountLastQmax can never exceed CycleCount. If it does, the cycle counter was reset — physically impossible without tampering.</p>
+            <p><strong>Calibration Paradox:</strong> CycleCountLastQmax can never exceed CycleCount. If it does, the cycle counter was reset, which is physically impossible without tampering.</p>
             <p><strong>Chip Origin:</strong> A 3-cell MacBook pack cannot drop below 9,000mV (TI CUV floor). A lower MaximumPackVoltage means the chip came from a 2-cell device.</p>
             <p><strong>Frozen Clock:</strong> TotalOperatingTime must increment continuously. If unchanged in 30+ hours between scans, the firmware counter is disabled or spoofed.</p>
             <button class="modal-close" onclick="hideAbout()">Close</button>
@@ -307,7 +307,7 @@
             try {
                 const res = await fetch('/api/info');
                 const info = await res.json();
-                let txt = `v${info.version} — ${info.model}`;
+                let txt = `v${info.version} | ${info.model}`;
                 if (info.serial && info.serial !== '--') {
                     txt += ` | Battery S/N: ${info.serial}`;
                 }
