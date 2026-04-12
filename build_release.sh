@@ -5,7 +5,7 @@
 set -e
 
 APP_NAME="Battery Guardian"
-VERSION="1.3"
+VERSION="1.3.1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 DIST_DIR="$SCRIPT_DIR/dist"
@@ -22,7 +22,8 @@ rm -f "$ZIP_PATH"
 # --- 1. Compile to standalone .app using PyInstaller ---
 echo "[1/4] Compiling macOS standalone binary..."
 # Note: pywebview and other modules are automatically detected and bundled.
-pyinstaller --name "$APP_NAME" \
+PYINSTALLER="${HOME}/Library/Python/3.9/bin/pyinstaller"
+"$PYINSTALLER" --name "$APP_NAME" \
             --windowed \
             --noconfirm \
             --clean \
