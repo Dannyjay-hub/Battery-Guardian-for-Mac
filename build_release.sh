@@ -1,27 +1,29 @@
 #!/bin/bash
-# build_dmg.sh — Builds Battery Guardian standalone App using PyInstaller
-# Usage: ./build_dmg.sh
+# build_release.sh — Builds Battery Guardian standalone App using PyInstaller
+# Produces both a ZIP (fallback) and a styled DMG installer.
+# Usage: ./build_release.sh
 
 set -e
 
 APP_NAME="Battery Guardian"
-VERSION="1.3.1"
+VERSION="1.3.2"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
 DIST_DIR="$SCRIPT_DIR/dist"
 ZIP_NAME="BatteryGuardian_v${VERSION}.zip"
 ZIP_PATH="$SCRIPT_DIR/$ZIP_NAME"
+DMG_NAME="BatteryGuardian_v${VERSION}.dmg"
+DMG_PATH="$SCRIPT_DIR/$DMG_NAME"
 
 echo "=== Building $APP_NAME v$VERSION with PyInstaller ==="
 
 # Clean previous builds
-rm -rf "$BUILD_DIR" 
+rm -rf "$BUILD_DIR"
 rm -rf "$DIST_DIR"
-rm -f "$ZIP_PATH"
+rm -f "$ZIP_PATH" "$DMG_PATH"
 
 # --- 1. Compile to standalone .app using PyInstaller ---
-echo "[1/4] Compiling macOS standalone binary..."
-# Note: pywebview and other modules are automatically detected and bundled.
+echo "[1/5] Compiling macOS standalone binary..."
 PYINSTALLER="${HOME}/Library/Python/3.9/bin/pyinstaller"
 "$PYINSTALLER" --name "$APP_NAME" \
             --windowed \
@@ -42,37 +44,88 @@ fi
 echo "    Compilation complete: $APP_BUNDLE"
 
 
-# --- 2. Minimal tuning & Plist override (Optional but good) ---
-echo "[2/4] Refining Info.plist..."
+# --- 2. Refine Info.plist ---
+echo "[2/5] Refining Info.plist..."
 PLIST_PATH="$APP_BUNDLE/Contents/Info.plist"
 if [ -f "$PLIST_PATH" ]; then
-    # Modify the default PyInstaller plist minimally if needed
-    # Usually PyInstaller plist is fine, but we can ensure high-res capable
     defaults write "$PLIST_PATH" NSHighResolutionCapable -bool YES
     defaults write "$PLIST_PATH" CFBundleShortVersionString "$VERSION"
     defaults write "$PLIST_PATH" CFBundleIdentifier "com.dannyjay.batteryguardian"
-    # Convert binary plist back to xml for readability
     plutil -convert xml1 "$PLIST_PATH"
 fi
 
 
 # --- 3. Ad-hoc sign ---
-echo "[3/4] Signing payload..."
+echo "[3/5] Signing payload..."
 codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null && echo "    Signed: ad-hoc" || echo "    Signing skipped (non-critical)"
 
 
-# --- 4. Create ZIP Archive ---
-echo "[4/4] Creating ZIP deployment package..."
-rm -f "$ZIP_PATH"
-
+# --- 4. Create ZIP Archive (fallback) ---
+echo "[4/5] Creating ZIP deployment package..."
 cd "$DIST_DIR"
-# Archive the App bundle recursively, preserving symlinks
-zip -r -9 -y "$ZIP_PATH" "$APP_NAME.app" >/dev/null 2>&1
+zip -r -9 -y "$ZIP_PATH" "$APP_NAME.app" > /dev/null 2>&1
 cd "$SCRIPT_DIR"
+echo "    ZIP: $ZIP_PATH ($(du -sh "$ZIP_PATH" | awk '{print $1}'))"
 
-echo "    ZIP archive properly compressed: $ZIP_PATH"
+
+# --- 5. Create styled DMG installer ---
+echo "[5/5] Creating styled DMG installer..."
+
+TMP_DMG="$SCRIPT_DIR/tmp_rw.dmg"
+VOLUME_NAME="$APP_NAME"
+
+# Create a writable DMG from the .app
+hdiutil create -srcfolder "$APP_BUNDLE" \
+               -volname "$VOLUME_NAME" \
+               -fs HFS+ \
+               -format UDRW \
+               -size 80m \
+               "$TMP_DMG" > /dev/null 2>&1
+
+# Mount it
+DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "$TMP_DMG" | awk 'END{print $1}')
+MOUNT_POINT="/Volumes/$VOLUME_NAME"
+
+# Add Applications folder symlink
+ln -sf /Applications "$MOUNT_POINT/Applications"
+
+# Add background image
+mkdir -p "$MOUNT_POINT/.background"
+cp "$SCRIPT_DIR/dmg_background.png" "$MOUNT_POINT/.background/background.png"
+
+# Use AppleScript to style the Finder window
+osascript <<APPLESCRIPT
+tell application "Finder"
+    tell disk "$VOLUME_NAME"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {100, 100, 760, 500}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 120
+        set background picture of viewOptions to file ".background:background.png"
+        set position of item "$APP_NAME.app" of container window to {180, 195}
+        set position of item "Applications" of container window to {480, 195}
+        close
+        open
+        update without registering applications
+        delay 2
+    end tell
+end tell
+APPLESCRIPT
+
+# Sync, unmount, convert to read-only compressed DMG
+sync
+hdiutil detach "$DEVICE" > /dev/null 2>&1
+hdiutil convert "$TMP_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH" > /dev/null 2>&1
+rm -f "$TMP_DMG"
+
+echo "    DMG: $DMG_PATH ($(du -sh "$DMG_PATH" | awk '{print $1}'))"
 
 echo ""
-echo "[5/5] Complete!"
-echo "  Archive Size: $(du -sh "$ZIP_PATH" | awk '{print $1}')"
+echo "Build complete!"
+echo "  ZIP ($(du -sh "$ZIP_PATH" | awk '{print $1}')): $ZIP_NAME"
+echo "  DMG ($(du -sh "$DMG_PATH" | awk '{print $1}')): $DMG_NAME"
 echo "  Ready to deploy."

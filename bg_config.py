@@ -12,7 +12,7 @@ by spoofed hardware and cannot appear on genuine batteries under normal use.
 
 import os
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 PORT = 8080
 HISTORY_FILE = os.path.expanduser("~/.battery_guardian_log.json")
 MAX_HISTORY = 100
