@@ -393,13 +393,56 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 700px) {
+      /* Nav */
       .nav-links { display: none; }
-      .hero { padding-top: 100px; }
+      .nav-download { padding: 7px 12px; font-size: 12px; }
+
+      /* Hero */
+      .hero { padding-top: 88px; padding-bottom: 60px; }
+      .hero h1 { font-size: clamp(36px, 9vw, 52px); }
+      .hero-sub { font-size: 15px; }
+      .hero-ctas { flex-direction: column; width: 100%; max-width: 320px; }
+      .btn-primary, .btn-secondary { justify-content: center; }
+
+      /* Mockup wrapper */
+      .mockup-body { padding: 16px 12px; }
+      .mockup-bar { padding: 10px 12px; }
+      .mockup-title { font-size: 11px; }
+
+      /* Fake header — hide the subtitle & action buttons, too cramped */
+      .fake-header { margin-bottom: 14px; align-items: flex-start; }
+      .fake-brand { font-size: 14px; }
+      .fake-brand-sub { display: none; }
+      .fake-btns { display: none; }
+
+      /* Fake automate section — hide the inputs, just show the title pill */
+      .fake-auto { padding: 10px 12px; margin-bottom: 14px; flex-direction: row; align-items: center; gap: 0; }
+      .fake-auto-controls { display: none; }
+
+      /* Health ring */
+      .fake-ring { width: 120px; height: 120px; margin-bottom: 14px; }
+      .fake-ring svg { width: 120px; height: 120px; }
+      .fake-ring-score { font-size: 34px; }
+      .fake-ring-label { font-size: 9px; }
+
+      /* Metric grid — 2 columns instead of 3 */
+      .fake-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+      .fake-card { padding: 10px 10px; }
+      .fake-card-val { font-size: 16px; }
+
+      /* Log items — hide descriptions, just show status titles */
+      .fake-log { gap: 6px; }
+      .fake-log-title { font-size: 11px; }
+      .fake-log-desc { display: none; }
+
+      /* Sections */
+      section { padding: 72px 20px; }
       .step { border-right: none; border-bottom: 1px solid var(--border); }
       .step:last-child { border-bottom: none; }
-      .download-card { padding: 32px 24px; }
+      .download-card { padding: 32px 20px; }
       .footer-inner { flex-direction: column; align-items: flex-start; }
     }
+
   </style>
 </head>
 <body>
