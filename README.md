@@ -177,11 +177,11 @@ A single high-confidence check (≥ 40 pts) is sufficient for a SPOOFED verdict.
 
 ## Install (Pre-built)
 
-1. Download `BatteryGuardian_v1.3.zip` from [Releases](https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases)
-2. Unzip and drag **Battery Guardian.app** to your Applications folder
-3. Double-click to open — results appear instantly
+1. Download `BatteryGuardian_v1.3.2.dmg` from [Releases](https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases)
+2. Open the DMG and drag **Battery Guardian** to the Applications folder
+3. Open **ReadMeFirst.html** inside the DMG for first-launch instructions
 
-> **Gatekeeper warning:** The app is ad-hoc signed (not notarized). On first launch, right-click → Open to bypass the Gatekeeper prompt.
+> **Gatekeeper:** The app is not notarized. On first launch, right-click → Open instead of double-clicking. If macOS says "cannot be verified", click Cancel — do not move to Trash — then right-click and Open.
 
 ---
 
@@ -193,13 +193,13 @@ git clone https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac.git
 cd Battery-Guardian-for-Mac
 
 # Install dependencies
-pip3 install pywebview pyinstaller
+pip3 install pywebview
 
 # Run
 python3 battery_guardian_web.py
 ```
 
-The app opens automatically in a native window at `http://localhost:8080`.
+The app opens as a native macOS window. Results load automatically on launch.
 
 ---
 
@@ -231,7 +231,7 @@ pip3 install pyinstaller
 bash build_release.sh
 ```
 
-Output: `BatteryGuardian_v1.3.zip` — a self-contained macOS `.app` bundle ready for distribution.
+Output: `BatteryGuardian_v1.3.2.dmg` — a self-contained macOS `.app` bundle packaged as a DMG installer.
 
 ---
 
@@ -249,9 +249,10 @@ Battery Guardian/
 ├── bg_platform.py            # Platform detection and Mac model identification
 ├── bg_server.py              # HTTP request handler for the web UI
 ├── bg_template.html          # Frontend UI (HTML/CSS/JS)
-├── guide.html                # Forensic methodology guide page
-├── build_release.sh          # PyInstaller build script
-└── Battery Guardian.spec     # PyInstaller spec file
+├── bg_guide.html             # Forensic methodology guide page
+├── ReadMeFirst.html          # DMG install guide (bundled in installer)
+├── dmg_background.png        # DMG window background
+└── build_release.sh          # PyInstaller + DMG build script
 ```
 
 ---
