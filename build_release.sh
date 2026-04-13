@@ -24,8 +24,7 @@ rm -f "$ZIP_PATH" "$DMG_PATH" "$SCRIPT_DIR/tmp_rw.dmg"
 
 # --- 1. Compile to standalone .app using PyInstaller ---
 echo "[1/5] Compiling macOS standalone binary..."
-PYINSTALLER="${HOME}/Library/Python/3.9/bin/pyinstaller"
-"$PYINSTALLER" --name "$APP_NAME" \
+python3 -m PyInstaller --name "$APP_NAME" \
             --windowed \
             --noconfirm \
             --clean \
@@ -109,8 +108,8 @@ tell application "Finder"
         set arrangement of viewOptions to not arranged
         set icon size of viewOptions to 120
         set background picture of viewOptions to file ".background:background.png"
-        set position of item "$APP_NAME.app" of container window to {180, 195}
-        set position of item "Applications" of container window to {480, 195}
+        set position of item "$APP_NAME.app" of container window to {180, 240}
+        set position of item "Applications" of container window to {480, 240}
         set position of item "ReadMeFirst.html" of container window to {330, 65}
         close
         open
