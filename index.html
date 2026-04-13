@@ -549,7 +549,7 @@
       </button>
       <div class="dropdown-menu" style="right:0;left:auto;">
         <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" download onclick="closeDropdown('navDropdown')">Apple Silicon Chip</a>
-        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" download onclick="closeDropdown('navDropdown')">Intel Chip</a>
+        <a style="opacity:0.45;cursor:not-allowed;pointer-events:none;color:var(--text-muted, #888);" aria-disabled="true">Intel Chip &mdash; Coming Soon</a>
       </div>
     </div>
   </div>
@@ -572,7 +572,7 @@
       </button>
       <div class="dropdown-menu">
         <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" download onclick="closeDropdown('heroDropdown')">Apple Silicon Chip</a>
-        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" download onclick="closeDropdown('heroDropdown')">Intel Chip</a>
+        <a style="opacity:0.45;cursor:not-allowed;pointer-events:none;color:var(--text-muted, #888);" aria-disabled="true">Intel Chip &mdash; Coming Soon</a>
       </div>
     </div>
     <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" class="btn-secondary" target="_blank">
@@ -900,13 +900,13 @@
         <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" class="btn-primary" style="justify-content:center; width:100%; box-sizing:border-box;" download>
           ⬇ Apple Silicon Chip
         </a>
-        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" class="btn-secondary" style="justify-content:center; width:100%; box-sizing:border-box;" download>
-          ⬇ Intel Chip
-        </a>
+        <span class="btn-secondary" style="justify-content:center; width:100%; box-sizing:border-box; opacity:0.45; cursor:not-allowed; display:flex; align-items:center; gap:8px;">
+          Intel Chip &mdash; Coming Soon
+        </span>
       </div>
       <div class="download-meta">
         <span>✓ macOS 10.14+</span>
-        <span>✓ Apple Silicon &amp; Intel</span>
+        <span>✓ Apple Silicon (Intel coming soon)</span>
         <span>✓ MIT License</span>
         <span>✓ No tracking</span>
       </div>
@@ -972,6 +972,27 @@
       if (!dd.contains(e.target)) dd.classList.remove('open');
     });
   });
+
+  // Fetch download count from GitHub Releases API.
+  // Count is stored silently in window.bgDownloadCount — not displayed yet.
+  // To show it, add: <span id="bg-download-count"></span> anywhere and
+  // uncomment the display line below.
+  window.bgDownloadCount = 0;
+  fetch('https://api.github.com/repos/Dannyjay-hub/Battery-Guardian-for-Mac/releases')
+    .then(function(r) { return r.json(); })
+    .then(function(releases) {
+      var total = 0;
+      releases.forEach(function(release) {
+        (release.assets || []).forEach(function(asset) {
+          total += (asset.download_count || 0);
+        });
+      });
+      window.bgDownloadCount = total;
+      // Uncomment to display live count:
+      // var el = document.getElementById('bg-download-count');
+      // if (el) el.textContent = total.toLocaleString();
+    })
+    .catch(function() { /* silently ignore if API unavailable */ });
 </script>
 </body>
 </html>
