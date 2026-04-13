@@ -684,13 +684,21 @@
       return false;
     }
 
-    // Detect Apple Silicon data
-    if (text.indexOf('CycleCountLastQmax') !== -1 || text.indexOf('MaximumPackVoltage') !== -1) {
+    // Silicon-only fields (bq40z55) — never appear on Intel
+    var hasSiliconFields = (text.indexOf('CycleCountLastQmax') !== -1 || text.indexOf('MaximumPackVoltage') !== -1);
+
+    // Intel-only field (bq20z451) — never appears on Silicon
+    var hasIntelFields = (text.indexOf('DesignCycleCount70') !== -1);
+
+    // Definite Silicon: has Silicon fields, reject
+    if (hasSiliconFields) {
       errorEl.innerHTML = '<strong>This looks like Apple Silicon data, not Intel.</strong> Battery Guardian already supports Apple Silicon. This page is only for Intel Mac data collection. <a href="/" style="color:var(--accent)">Download the app</a> to scan your Apple Silicon Mac.';
       errorEl.style.display = 'block';
       return false;
     }
 
+    // Has Intel field: confirmed Intel, accept
+    // Has neither: could be edge case, accept anyway (we review manually)
     return true;
   }
 
