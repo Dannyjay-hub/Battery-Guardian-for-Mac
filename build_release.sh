@@ -75,11 +75,14 @@ TMP_DMG="$SCRIPT_DIR/tmp_rw.dmg"
 VOLUME_NAME="$APP_NAME"
 STAGING_DIR="$(mktemp -d)"
 
-# Stage all DMG contents
+# Stage ALL DMG contents (including symlink and background)
 cp -r "$APP_BUNDLE" "$STAGING_DIR/$APP_NAME.app"
 cp "$SCRIPT_DIR/ReadMeFirst.html" "$STAGING_DIR/ReadMeFirst.html"
+ln -sf /Applications "$STAGING_DIR/Applications"
+mkdir -p "$STAGING_DIR/.background"
+cp "$SCRIPT_DIR/dmg_background.png" "$STAGING_DIR/.background/background.png"
 
-# Create a writable DMG from the staging dir
+# Create a writable DMG from the fully-staged directory
 hdiutil create -srcfolder "$STAGING_DIR" \
                -volname "$VOLUME_NAME" \
                -fs HFS+ \
@@ -89,18 +92,11 @@ hdiutil create -srcfolder "$STAGING_DIR" \
 
 rm -rf "$STAGING_DIR"
 
-# Mount it
+# Mount for AppleScript styling only (no file writes needed)
 DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "$TMP_DMG" | awk 'END{print $1}')
 MOUNT_POINT="/Volumes/$VOLUME_NAME"
 
-# Add Applications folder symlink
-ln -sf /Applications "$MOUNT_POINT/Applications"
-
-# Add background image
-mkdir -p "$MOUNT_POINT/.background"
-cp "$SCRIPT_DIR/dmg_background.png" "$MOUNT_POINT/.background/background.png"
-
-# Use AppleScript to style the Finder window
+# Style the Finder window
 osascript <<APPLESCRIPT
 tell application "Finder"
     tell disk "$VOLUME_NAME"
@@ -115,7 +111,7 @@ tell application "Finder"
         set background picture of viewOptions to file ".background:background.png"
         set position of item "$APP_NAME.app" of container window to {180, 195}
         set position of item "Applications" of container window to {480, 195}
-        set position of item "ReadMeFirst.html" of container window to {330, 370}
+        set position of item "ReadMeFirst.html" of container window to {330, 65}
         close
         open
         update without registering applications
