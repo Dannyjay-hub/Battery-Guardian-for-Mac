@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intel Battery Lab | Battery Guardian</title>
+  <meta name="description" content="Help Battery Guardian launch Intel Mac support. Submit your battery data in 60 seconds.">
+  <link rel="canonical" href="https://batteryguardian.tech/intel">
+  <meta property="og:title" content="Intel Battery Lab | Battery Guardian">
+  <meta property="og:description" content="Help Battery Guardian launch Intel Mac support. Submit anonymised battery data in 60 seconds.">
+  <meta property="og:url" content="https://batteryguardian.tech/intel">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='25' y='15' width='50' height='75' rx='8' fill='none' stroke='%2330D158' stroke-width='6'/><rect x='38' y='8' width='24' height='10' rx='3' fill='%2330D158'/><rect x='35' y='35' width='30' height='40' rx='4' fill='%2330D158'/></svg>">
+  <style>
+    :root {
+      --bg: #08080A;
+      --surface: #111115;
+      --panel: #18181D;
+      --border: rgba(255,255,255,0.07);
+      --text: #F2F2F7;
+      --sub: #8E8E93;
+      --accent: #0A84FF;
+      --green: #30D158;
+      --red: #FF453A;
+      --orange: #FFD60A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(8,8,10,0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 56px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 15px; font-weight: 700; letter-spacing: -0.2px;
+    }
+    .nav-logo span { font-size: 22px; }
+    .nav-back {
+      font-size: 13px; color: var(--accent); font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .nav-back:hover { opacity: 0.7; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 70vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 900px;
+      background: radial-gradient(ellipse at center, rgba(255,214,10,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,214,10,0.1); border: 1px solid rgba(255,214,10,0.25);
+      color: var(--orange); border-radius: 20px;
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.3px; margin-bottom: 28px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--orange);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -2.5px;
+      line-height: 1.05;
+      margin-bottom: 22px;
+      background: linear-gradient(160deg, #fff 40%, rgba(255,255,255,0.5));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(15px, 2.2vw, 18px);
+      color: var(--sub);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+
+    .scroll-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: white;
+      padding: 14px 32px; border-radius: 12px;
+      font-size: 15px; font-weight: 700;
+      transition: all 0.2s; cursor: pointer; border: none;
+      box-shadow: 0 0 40px rgba(10,132,255,0.3);
+    }
+    .scroll-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(10,132,255,0.4); }
+
+    /* ── HOW SECTION ── */
+    .how-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+    .how-inner { max-width: 700px; margin: 0 auto; }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 800; letter-spacing: -1.2px;
+      line-height: 1.1; margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 16px; color: var(--sub); line-height: 1.6; margin-bottom: 40px;
+    }
+
+    .step-list { display: flex; flex-direction: column; gap: 24px; }
+    .step-item {
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+    .step-num-circle {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(10,132,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: var(--accent);
+    }
+    .step-content {}
+    .step-content h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--sub); line-height: 1.6; }
+
+    .cmd-box {
+      background: #0D0D0F;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .cmd-text {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px; color: var(--green);
+      white-space: nowrap; overflow-x: auto;
+    }
+    .cmd-copy {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      color: var(--sub); font-size: 12px; font-weight: 600;
+      padding: 6px 14px; border-radius: 8px;
+      cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    }
+    .cmd-copy:hover { color: var(--text); background: rgba(255,255,255,0.12); }
+    .cmd-copy.copied { color: var(--green); border-color: var(--green); }
+
+    /* ── TRANSPARENCY TABLE ── */
+    .transparency {
+      padding: 60px 24px 80px;
+    }
+    .transparency-inner { max-width: 700px; margin: 0 auto; }
+    .data-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      margin-top: 24px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .data-table thead th {
+      text-align: left;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--sub);
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tbody td {
+      padding: 12px 18px; font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table .field { font-family: "SF Mono", monospace; font-size: 13px; color: var(--accent); }
+    .data-table .example { font-family: "SF Mono", monospace; font-size: 12px; color: var(--sub); }
+    .data-table .stripped {
+      text-decoration: line-through;
+      opacity: 0.4;
+    }
+    .data-table .removed-tag {
+      display: inline-block;
+      background: rgba(255,69,58,0.1); color: var(--red);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+      padding: 2px 8px; border-radius: 10px;
+      margin-left: 8px; text-decoration: none;
+    }
+
+    /* ── SUBMIT SECTION ── */
+    .submit-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 80px 24px 100px;
+    }
+    .submit-inner { max-width: 640px; margin: 0 auto; }
+
+    .submit-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .submit-card::before {
+      content: "";
+      position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 250px;
+      background: radial-gradient(ellipse, rgba(255,214,10,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .submit-title {
+      font-size: 22px; font-weight: 800; letter-spacing: -0.8px;
+      margin-bottom: 8px; position: relative;
+    }
+    .submit-sub {
+      font-size: 14px; color: var(--sub); line-height: 1.5;
+      margin-bottom: 28px; position: relative;
+    }
+
+    textarea {
+      width: 100%; min-height: 160px; max-height: 400px;
+      background: #0D0D0F;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      color: var(--text);
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px; line-height: 1.5;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.15);
+    }
+    textarea::placeholder { color: rgba(255,255,255,0.2); }
+
+    .label-group {
+      margin-top: 24px; margin-bottom: 24px;
+      position: relative;
+    }
+    .label-title {
+      font-size: 14px; font-weight: 700; margin-bottom: 12px;
+    }
+    .radio-group {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .radio-option {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer;
+    }
+    .radio-option input[type="radio"] {
+      -webkit-appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .radio-option input[type="radio"]:checked {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: inset 0 0 0 3px var(--panel);
+    }
+    .radio-option label {
+      font-size: 14px; color: var(--sub);
+      cursor: pointer; transition: color 0.15s;
+    }
+    .radio-option input[type="radio"]:checked + label { color: var(--text); }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent); color: white;
+      padding: 16px 28px; border-radius: 12px;
+      font-size: 16px; font-weight: 700;
+      border: none; cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 30px rgba(10,132,255,0.2);
+      position: relative;
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(10,132,255,0.3);
+    }
+    .submit-btn:disabled {
+      opacity: 0.5; cursor: not-allowed;
+      transform: none; box-shadow: none;
+    }
+
+    .submit-fine-print {
+      margin-top: 16px; text-align: center;
+      font-size: 12px; color: var(--sub); line-height: 1.5;
+    }
+    .submit-fine-print a { color: var(--accent); text-decoration: underline; }
+
+    /* ── VALIDATION ERROR ── */
+    .validation-error {
+      display: none;
+      background: rgba(255,69,58,0.1);
+      border: 1px solid rgba(255,69,58,0.3);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--red);
+      line-height: 1.5;
+    }
+    .validation-error strong { color: var(--red); }
+
+    /* ── SUCCESS STATE ── */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+      position: relative;
+    }
+    .success-icon { font-size: 56px; margin-bottom: 16px; }
+    .success-title {
+      font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+      margin-bottom: 10px; color: var(--green);
+    }
+    .success-desc {
+      font-size: 15px; color: var(--sub); line-height: 1.6;
+      max-width: 420px; margin: 0 auto;
+    }
+
+    /* ── COUNTER ── */
+    .counter-bar {
+      margin-top: 48px; text-align: center;
+    }
+    .counter-num {
+      font-size: 48px; font-weight: 900; letter-spacing: -2px;
+      background: linear-gradient(135deg, var(--orange) 30%, rgba(255,214,10,0.5));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .counter-label {
+      font-size: 14px; color: var(--sub); margin-top: 4px;
+    }
+    .progress-track {
+      max-width: 400px; margin: 16px auto 0;
+      height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--green));
+      transition: width 0.6s ease;
+    }
+    .counter-goal {
+      font-size: 12px; color: var(--sub); margin-top: 8px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 24px;
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-left { font-size: 13px; color: var(--sub); }
+    .footer-left strong { color: var(--text); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: var(--sub); transition: color 0.15s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .nav-inner { padding: 0 16px; }
+      .hero { padding: 100px 20px 40px; }
+      .hero h1 { font-size: clamp(30px, 8vw, 48px); }
+      .how-section, .transparency, .submit-section { padding-left: 20px; padding-right: 20px; }
+      .submit-card { padding: 28px 20px; }
+      .step-item { gap: 14px; }
+      .cmd-box { flex-direction: column; align-items: stretch; gap: 8px; }
+      .cmd-text { font-size: 11px; }
+      .data-table { font-size: 13px; }
+      .data-table thead th, .data-table tbody td { padding: 10px 12px; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span>🔋</span> Battery Guardian
+    </a>
+    <a href="/" class="nav-back">← Back to main site</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="dot"></div>
+    Intel Beta Program
+  </div>
+  <h1>Help us protect<br>Intel Mac buyers</h1>
+  <p class="hero-sub">
+    Thousands of MacBooks are sold every year with fake batteries that report perfect health. The chip has been reprogrammed. The cycle count has been zeroed. The owner has no idea.
+    <br><br>
+    Battery Guardian already catches this <strong>on Apple Silicon chips</strong>. Intel chips are different &mdash; different chip, different registers, different forensic signals. We need real-world data from Intel batteries to get the detection right.
+  </p>
+  <a href="#submit" class="scroll-cta">Contribute your data ↓</a>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="how-inner">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-title">60 seconds. One command.</h2>
+    <p class="section-sub">You don't need to install anything. Just run a standard macOS diagnostic command, paste the output, and tell us if your battery is original.</p>
+
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num-circle">1</div>
+        <div class="step-content">
+          <h3>Open Terminal</h3>
+          <p>Press <strong>Cmd + Space</strong>, type <strong>Terminal</strong>, and hit Enter.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-circle">2</div>
+        <div class="step-content">
+          <h3>Run this command</h3>
+          <p>It reads your battery chip data and copies it to your clipboard. Nothing is sent anywhere.</p>
+          <div class="cmd-box">
+            <code class="cmd-text">ioreg -rn AppleSmartBattery | pbcopy</code>
+            <button class="cmd-copy" onclick="copyCmd(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-circle">3</div>
+        <div class="step-content">
+          <h3>Paste below and submit</h3>
+          <p>Your serial number is stripped automatically before anything leaves your browser.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSPARENCY -->
+<section class="transparency">
+  <div class="transparency-inner">
+    <div class="section-tag">Full Transparency</div>
+    <h2 class="section-title">Here is exactly what we receive</h2>
+    <p class="section-sub">No surprises. Every field is listed below. Your serial number is removed client-side before submission.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Example</th>
+          <th>What it tells us</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="field">CycleCount</td>
+          <td class="example">312</td>
+          <td>Battery wear level</td>
+        </tr>
+        <tr>
+          <td class="field">DataFlashWriteCount</td>
+          <td class="example">847</td>
+          <td>Chip calibration history</td>
+        </tr>
+        <tr>
+          <td class="field">DOD0</td>
+          <td class="example">[14201, 14389, 14156]</td>
+          <td>Per-cell discharge state</td>
+        </tr>
+        <tr>
+          <td class="field">AverageTemperature</td>
+          <td class="example">31</td>
+          <td>Lifetime thermal history</td>
+        </tr>
+        <tr>
+          <td class="field">DesignCapacity</td>
+          <td class="example">5100</td>
+          <td>Battery model identification</td>
+        </tr>
+        <tr>
+          <td class="field">Manufacturer</td>
+          <td class="example">SMP</td>
+          <td>Pack origin</td>
+        </tr>
+        <tr>
+          <td><span class="field stripped">Serial</span> <span class="removed-tag">Removed</span></td>
+          <td class="example stripped">C015143...</td>
+          <td>Stripped before sending</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SUBMIT -->
+<section class="submit-section" id="submit">
+  <div class="submit-inner">
+    <div id="form-state">
+      <div class="submit-card">
+        <h2 class="submit-title">Paste your battery data</h2>
+        <p class="submit-sub">After running the command above, press Cmd+V here.</p>
+
+        <textarea id="ioreg-input" placeholder="Paste ioreg output here..."></textarea>
+
+        <div class="label-group">
+          <div class="label-title">Is this battery original?</div>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" name="label" id="label-genuine" value="genuine">
+              <label for="label-genuine">Original Apple battery (came with the Mac)</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="label" id="label-apple-replaced" value="apple-replaced">
+              <label for="label-apple-replaced">Replaced by Apple or authorised service</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="label" id="label-thirdparty" value="third-party">
+              <label for="label-thirdparty">Third-party or aftermarket replacement</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="label" id="label-unsure" value="unsure">
+              <label for="label-unsure">Not sure</label>
+            </div>
+          </div>
+        </div>
+
+        <button class="submit-btn" id="submit-btn" disabled onclick="submitData()">
+          Submit anonymously
+        </button>
+
+        <p class="submit-fine-print">
+          No account needed. No email collected. Serial number is stripped before sending.<br>
+          <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" target="_blank">View our open-source code</a> to see exactly what happens.
+        </p>
+        <div class="validation-error" id="validation-error"></div>
+      </div>
+    </div>
+
+    <div id="success-state" class="success-state">
+      <div class="success-icon">🎉</div>
+      <h2 class="success-title">Thank you!</h2>
+      <p class="success-desc">
+        Your data has been submitted. You're directly helping protect the next Intel Mac buyer from an undetectable fake battery.
+      </p>
+    </div>
+
+    <!-- Counter -->
+    <div class="counter-bar">
+      <div class="counter-num" id="counter-num">--</div>
+      <div class="counter-label">Intel batteries submitted</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+      <div class="counter-goal">Goal: 100 submissions</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <strong>Battery Guardian</strong> &mdash; Free &amp; open source
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" target="_blank">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  var WORKER_URL = "https://battery-guardian-download.danieljesusegun.workers.dev";
+  var GOAL = 100;
+
+  // ── Check if already submitted from this device ──
+  var alreadySubmitted = localStorage.getItem('bg-intel-submitted');
+  if (alreadySubmitted) {
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-state').style.display = 'block';
+    // Update the thank you message
+    document.querySelector('.success-desc').textContent = 
+      'You already submitted your battery data on ' + alreadySubmitted.slice(0,10) + '. Thank you for helping!';
+  }
+
+  // ── Copy command ──
+  function copyCmd(btn) {
+    var text = "ioreg -rn AppleSmartBattery | pbcopy";
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(function() {
+        btn.textContent = "Copy";
+        btn.classList.remove("copied");
+      }, 2000);
+    });
+  }
+
+  // ── Enable submit when textarea has content AND a radio is selected ──
+  var textarea = document.getElementById("ioreg-input");
+  var submitBtn = document.getElementById("submit-btn");
+  var radios = document.querySelectorAll('input[name="label"]');
+
+  function checkReady() {
+    var hasText = textarea.value.trim().length > 50;
+    var hasLabel = false;
+    radios.forEach(function(r) { if (r.checked) hasLabel = true; });
+    submitBtn.disabled = !(hasText && hasLabel);
+  }
+
+  textarea.addEventListener("input", checkReady);
+  radios.forEach(function(r) { r.addEventListener("change", checkReady); });
+
+  // ── Strip serial numbers from ioreg text ──
+  function stripSerials(text) {
+    // Remove "Serial" = "..." patterns
+    text = text.replace(/"Serial"\s*=\s*"[^"]*"/g, '"Serial" = "[REMOVED]"');
+    // Remove SerialString from adapter details
+    text = text.replace(/"SerialString"\s*=\s*"[^"]*"/g, '"SerialString" = "[REMOVED]"');
+    // Remove SerialNumber
+    text = text.replace(/"SerialNumber"\s*=\s*"[^"]*"/g, '"SerialNumber" = "[REMOVED]"');
+    return text;
+  }
+
+  // ── Validate: reject non-battery data, accept everything else ──
+  function validateIoreg(text) {
+    var errorEl = document.getElementById('validation-error');
+    errorEl.style.display = 'none';
+
+    // Must contain AppleSmartBattery
+    if (text.indexOf('AppleSmartBattery') === -1) {
+      errorEl.innerHTML = '<strong>This does not look like battery data.</strong> Please run the command above in Terminal and paste the full output.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+
+    return true;
+  }
+
+  // ── Submit data ──
+  function submitData() {
+    var rawText = textarea.value.trim();
+    if (rawText.length < 50) return;
+
+    // Validate before submitting
+    if (!validateIoreg(rawText)) {
+      return;
+    }
+
+    var label = "";
+    radios.forEach(function(r) { if (r.checked) label = r.value; });
+    if (!label) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+
+    var cleanText = stripSerials(rawText);
+
+    fetch(WORKER_URL + "/submit/intel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ioreg: cleanText,
+        label: label,
+        ts: new Date().toISOString()
+      })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+    .then(function(result) {
+      var data = result.data;
+      if (result.status === 409) {
+        // Duplicate
+        var errorEl = document.getElementById('validation-error');
+        errorEl.innerHTML = '<strong>Already submitted!</strong> ' + (data.message || 'This exact data was already submitted. Thank you!');
+        errorEl.style.display = 'block';
+        submitBtn.textContent = "Submit anonymously";
+        submitBtn.disabled = false;
+        if (data.count !== undefined) updateCounter(data.count);
+        return;
+      }
+      document.getElementById("form-state").style.display = "none";
+      document.getElementById("success-state").style.display = "block";
+      localStorage.setItem('bg-intel-submitted', new Date().toISOString());
+      if (data.count !== undefined) {
+        updateCounter(data.count);
+      }
+    })
+    .catch(function() {
+      submitBtn.textContent = "Error. Try again.";
+      submitBtn.disabled = false;
+      setTimeout(function() { submitBtn.textContent = "Submit anonymously"; }, 3000);
+    });
+  }
+
+  // ── Counter logic ──
+  function updateCounter(count) {
+    document.getElementById("counter-num").textContent = count;
+    var pct = Math.min((count / GOAL) * 100, 100);
+    document.getElementById("progress-fill").style.width = pct + "%";
+  }
+
+  // Fetch count on page load
+  fetch(WORKER_URL + "/submit/intel/count")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      updateCounter(data.count || 0);
+    })
+    .catch(function() {
+      document.getElementById("counter-num").textContent = "0";
+    });
+</script>
+</body>
+</html>
