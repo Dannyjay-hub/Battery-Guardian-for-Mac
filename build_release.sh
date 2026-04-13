@@ -31,7 +31,7 @@ python3 -m PyInstaller --name "$APP_NAME" \
             --icon "$SCRIPT_DIR/AppIcon.icns" \
             --add-data "$SCRIPT_DIR/bg_template.html:." \
             --add-data "$SCRIPT_DIR/bg_guide.html:." \
-            "$SCRIPT_DIR/battery_guardian_web.py" > /dev/null 2>&1
+            "$SCRIPT_DIR/battery_guardian_web.py"
 
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 
