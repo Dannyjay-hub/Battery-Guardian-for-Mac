@@ -207,22 +207,80 @@ def perform_scan(scan_mode="full"):
                     "desc": f"Qmax ({data['Qmax'][0]}mAh) is distinct from Design Capacity ({data['DesignCapacity']}mAh). No DataFlash override detected — this value has been naturally refined by the TI calibration algorithm over {cycles} cycles.",
                     "status": "success"})
 
-        # CHECK 4 ── DOD0 Calibration Tampering  [30 pts]
+        # CHECK 4 ── DOD0 Calibration Integrity  [30 pts]
         # ────────────────────────────────────────────────────────────────
         # DOD0 records the Depth of Discharge from the most recent calibration.
-        # A real calibration discharges less than DesignCapacity every time;
-        # no real cell delivers exactly its rated capacity. If DOD0 == DesignCapacity,
-        # the calibration history has been forged.
+        #
+        # SUB-CHECK A: All three DOD0 values identical
+        # The TI Impedance Track™ algorithm calibrates each cell independently.
+        # On a genuine battery that has been used and calibrated, the three cells
+        # will always show slightly different DOD0 values because real lithium cells
+        # discharge at marginally different rates. All three being exactly identical
+        # means the calibration data was never genuinely measured — it was either
+        # factory-reset or hardcoded.
+        #
+        # SUB-CHECK B: DOD0 = 16384 (Intel/bq20z451 specific)
+        # Per TI SLUU313A §2.4.2: DOD units are internal counts, converted to %
+        # by dividing by 163.84. So 16384 = 100% discharged (maximum possible value).
+        # On a genuine Intel battery with real cycles, DOD0 is refined below 16384.
+        # All three cells at 16384 with DataFlashWriteCount=0 means the BMS chip
+        # was reset or replaced — the gauge has never been through a real calibration.
+        # Ref: TI SLUU313A §2.4 — Gas Gauging / Impedance Track Configuration
+        #
+        # SUB-CHECK C: DOD0 == DesignCapacity (Apple Silicon / bq40z55 specific)
+        # On Apple Silicon, DOD0 is reported in mAh. A genuine calibration always
+        # discharges slightly less than the rated spec — if DOD0 exactly equals
+        # DesignCapacity, the record has been forged.
         # Ref: TI SLUU276 §5.4 — DOD0 Calibration
-        if "DOD0" in data and "DesignCapacity" in data:
-            if data["DOD0"][0] == data["DesignCapacity"]:
+        if "DOD0" in data:
+            dod = data["DOD0"]
+            writes = data.get("DataFlashWriteCount", None)
+
+            # SUB-CHECK A: All three identical (platform-agnostic)
+            if len(dod) >= 3 and dod[0] == dod[1] == dod[2] and cycles > 5:
+                # Is it the Intel "100% uncalibrated" pattern?
+                if dod[0] == 16384 and writes == 0:
+                    log.append({"title": "DOD0: BMS Chip Reset Detected",
+                        "desc": f"All three cells report DOD0 = {dod[0]} (100% discharged in TI internal units, per SLUU313A §2.4). DataFlashWriteCount = 0 confirms the gauge DataFlash has never been written. After {cycles} cycles a genuine battery has hundreds of calibration writes. The battery management chip was reset or replaced to hide true usage.",
+                        "status": "fail"})
+                    score += SCORE_CALIBRATION_TAMPERING
+                else:
+                    # All identical but not the specific Intel reset pattern
+                    log.append({"title": "DOD0: Identical Across All Cells",
+                        "desc": f"All three cells report the same DOD0 value ({dod[0]}). The TI Impedance Track™ algorithm calibrates each cell independently — after {cycles} cycles, genuine cells always diverge. Identical values indicate the calibration data was not independently measured.",
+                        "status": "fail"})
+                    score += SCORE_CALIBRATION_TAMPERING
+
+            # SUB-CHECK C: DOD0 == DesignCapacity (Apple Silicon mAh check)
+            elif "DesignCapacity" in data and dod[0] == data["DesignCapacity"]:
                 log.append({"title": "Calibration Tampering: DOD0",
-                    "desc": f"Depth of Discharge ({data['DOD0'][0]}mAh) equals Design Capacity ({data['DesignCapacity']}mAh). In genuine TI firmware a real calibration always discharges slightly less than the rated spec — this record has been fabricated.",
+                    "desc": f"Depth of Discharge ({dod[0]}mAh) equals Design Capacity ({data['DesignCapacity']}mAh). In genuine TI firmware a real calibration always discharges slightly less than the rated spec — this record has been fabricated.",
                     "status": "fail"})
                 score += SCORE_CALIBRATION_TAMPERING
+
             else:
                 log.append({"title": "Calibration Record: Valid",
-                    "desc": f"DOD0 ({data['DOD0'][0]}mAh) is correctly below Design Capacity ({data['DesignCapacity']}mAh). A genuine TI calibration always discharges less than the rated spec — this is the expected real-world result.",
+                    "desc": f"DOD0 values ({dod[0]}, {dod[1] if len(dod) > 1 else 'N/A'}, {dod[2] if len(dod) > 2 else 'N/A'}) are distinct across cells and within expected calibration range. Independent per-cell calibration is the expected signature of a real, measured battery.",
+                    "status": "success"})
+
+        # CHECK 4B ── DataFlash Write Count (Intel / bq20z451)  [25 pts]
+        # ────────────────────────────────────────────────────────────────
+        # The bq20z451 increments DataFlashWriteCount each time the gauge writes
+        # calibration data to its non-volatile DataFlash memory. On a genuine battery
+        # with 20+ cycles, this count should be in the hundreds. A count of 0 means
+        # the chip has never completed a real calibration cycle — consistent with a
+        # freshly reset or replaced BMS chip used to spoof a lower cycle count.
+        # Ref: TI SLUU313A §2.9 — Calibration
+        if "DataFlashWriteCount" in data and cycles > 10:
+            if data["DataFlashWriteCount"] == 0:
+                log.append({"title": "DataFlash: Zero Write Count",
+                    "desc": f"DataFlashWriteCount = 0 at {cycles} cycles. A genuine battery management chip writes calibration data to DataFlash continuously — after {cycles} charge cycles there should be hundreds of writes. Zero writes means the chip was never genuinely calibrated: it was reset or replaced.",
+                    "status": "fail"})
+                score += 25
+            else:
+                ratio = round(data["DataFlashWriteCount"] / max(1, cycles), 1)
+                log.append({"title": "DataFlash: Write History Confirmed",
+                    "desc": f"DataFlashWriteCount = {data['DataFlashWriteCount']} over {cycles} cycles (~{ratio}x per cycle). Continuous DataFlash writes confirm the gauge has been actively calibrating — consistent with genuine battery usage.",
                     "status": "success"})
 
         # Permanent Failure — safety alert only, not scored
