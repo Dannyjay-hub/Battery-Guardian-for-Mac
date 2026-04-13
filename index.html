@@ -490,6 +490,44 @@
       .footer-inner { flex-direction: column; align-items: flex-start; }
     }
 
+    /* --- Download Dropdown --- */
+    .download-dropdown { position: relative; display: inline-block; }
+    .dropdown-trigger { cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; }
+    .dropdown-caret { font-size: 0.8em; transition: transform 0.2s; }
+    .download-dropdown.open .dropdown-caret { transform: rotate(180deg); }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 200px;
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      z-index: 100;
+      animation: dropIn 0.18s ease;
+    }
+    .download-dropdown.open .dropdown-menu { display: block; }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .dropdown-menu a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .dropdown-menu a:hover { background: rgba(255,255,255,0.07); }
+    .chip-icon { font-size: 1.1em; }
+
   </style>
 </head>
 <body>
@@ -522,17 +560,24 @@
     Battery Guardian is a forensic tool for macOS that detects counterfeit, reprogrammed, and spoofed MacBook batteries. Results appear instantly.
   </p>
   <div class="hero-ctas">
-    <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" class="btn-primary" download>
-      ⬇ Apple Silicon (M1–M4)
-    </a>
-    <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" class="btn-secondary" download>
-      ⬇ Intel Mac
-    </a>
+    <div class="download-dropdown" id="heroDropdown">
+      <button class="btn-primary dropdown-trigger" onclick="toggleDropdown('heroDropdown')">
+        ⬇ Download for Mac <span class="dropdown-caret">&#x25BE;</span>
+      </button>
+      <div class="dropdown-menu">
+        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" download onclick="closeDropdown('heroDropdown')">
+          <span class="chip-icon">&#x1F34E;</span> Apple Silicon Chip
+        </a>
+        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" download onclick="closeDropdown('heroDropdown')">
+          <span class="chip-icon">&#x1F4BB;</span> Intel Mac
+        </a>
+      </div>
+    </div>
     <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" class="btn-secondary" target="_blank">
       View on GitHub →
     </a>
   </div>
-  <p class="hero-note">macOS 10.14 Mojave or later · No installation required · MIT License</p>
+
 
   <!-- App Mockup -->
   <div class="mockup-wrap">
@@ -851,7 +896,7 @@
       </p>
       <div style="display:flex; gap:12px; flex-direction:column;">
         <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" class="btn-primary" style="justify-content:center; width:100%; box-sizing:border-box;" download>
-          ⬇ Apple Silicon — M1, M2, M3, M4
+          ⬇ Apple Silicon Chip
         </a>
         <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" class="btn-secondary" style="justify-content:center; width:100%; box-sizing:border-box;" download>
           ⬇ Intel Mac
@@ -912,5 +957,19 @@
   </div>
 </footer>
 
+<script>
+  function toggleDropdown(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+  }
+  function closeDropdown(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  document.addEventListener('click', function(e) {
+    document.querySelectorAll('.download-dropdown.open').forEach(function(dd) {
+      if (!dd.contains(e.target)) dd.classList.remove('open');
+    });
+  });
+</script>
 </body>
 </html>
