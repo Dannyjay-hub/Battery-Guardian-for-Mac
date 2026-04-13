@@ -633,6 +633,16 @@
   var WORKER_URL = "https://battery-guardian-download.danieljesusegun.workers.dev";
   var GOAL = 100;
 
+  // ── Check if already submitted from this device ──
+  var alreadySubmitted = localStorage.getItem('bg-intel-submitted');
+  if (alreadySubmitted) {
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-state').style.display = 'block';
+    // Update the thank you message
+    document.querySelector('.success-desc').textContent = 
+      'You already submitted your battery data on ' + alreadySubmitted.slice(0,10) + '. Thank you for helping!';
+  }
+
   // ── Copy command ──
   function copyCmd(btn) {
     var text = "ioreg -rn AppleSmartBattery | pbcopy";
@@ -730,6 +740,7 @@
       }
       document.getElementById("form-state").style.display = "none";
       document.getElementById("success-state").style.display = "block";
+      localStorage.setItem('bg-intel-submitted', new Date().toISOString());
       if (data.count !== undefined) {
         updateCounter(data.count);
       }
