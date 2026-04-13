@@ -672,7 +672,7 @@
     return text;
   }
 
-  // ── Validate: reject Apple Silicon data and random text ──
+  // ── Validate: reject non-battery data, accept everything else ──
   function validateIoreg(text) {
     var errorEl = document.getElementById('validation-error');
     errorEl.style.display = 'none';
@@ -684,21 +684,6 @@
       return false;
     }
 
-    // Silicon-only fields (bq40z55) — never appear on Intel
-    var hasSiliconFields = (text.indexOf('CycleCountLastQmax') !== -1 || text.indexOf('MaximumPackVoltage') !== -1);
-
-    // Intel-only field (bq20z451) — never appears on Silicon
-    var hasIntelFields = (text.indexOf('DesignCycleCount70') !== -1);
-
-    // Definite Silicon: has Silicon fields, reject
-    if (hasSiliconFields) {
-      errorEl.innerHTML = '<strong>This looks like Apple Silicon data, not Intel.</strong> Battery Guardian already supports Apple Silicon. This page is only for Intel Mac data collection. <a href="/" style="color:var(--accent)">Download the app</a> to scan your Apple Silicon Mac.';
-      errorEl.style.display = 'block';
-      return false;
-    }
-
-    // Has Intel field: confirmed Intel, accept
-    // Has neither: could be edge case, accept anyway (we review manually)
     return true;
   }
 
@@ -730,8 +715,19 @@
         ts: new Date().toISOString()
       })
     })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+    .then(function(result) {
+      var data = result.data;
+      if (result.status === 409) {
+        // Duplicate
+        var errorEl = document.getElementById('validation-error');
+        errorEl.innerHTML = '<strong>Already submitted!</strong> ' + (data.message || 'This exact data was already submitted. Thank you!');
+        errorEl.style.display = 'block';
+        submitBtn.textContent = "Submit anonymously";
+        submitBtn.disabled = false;
+        if (data.count !== undefined) updateCounter(data.count);
+        return;
+      }
       document.getElementById("form-state").style.display = "none";
       document.getElementById("success-state").style.display = "block";
       if (data.count !== undefined) {
