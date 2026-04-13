@@ -543,9 +543,19 @@
       <a href="#how">How it works</a>
       <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" target="_blank">GitHub</a>
     </div>
-    <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" class="nav-download" download>
-      ⬇ Apple Silicon
-    </a>
+    <div class="download-dropdown" id="navDropdown" style="display:inline-block;">
+      <button class="nav-download dropdown-trigger" style="background:var(--accent);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleDropdown('navDropdown')">
+        ⬇ Download for Mac <span class="dropdown-caret">&#x25BE;</span>
+      </button>
+      <div class="dropdown-menu" style="right:0;left:auto;">
+        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2.dmg" download onclick="closeDropdown('navDropdown')">
+          <span class="chip-icon">&#x1F34E;</span> Apple Silicon Chip
+        </a>
+        <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/latest/download/BatteryGuardian_v1.3.2_Intel.dmg" download onclick="closeDropdown('navDropdown')">
+          <span class="chip-icon">&#x1F4BB;</span> Intel Mac
+        </a>
+      </div>
+    </div>
   </div>
 </nav>
 

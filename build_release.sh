@@ -20,7 +20,7 @@ echo "=== Building $APP_NAME v$VERSION with PyInstaller ==="
 # Clean previous builds
 rm -rf "$BUILD_DIR"
 rm -rf "$DIST_DIR"
-rm -f "$ZIP_PATH" "$DMG_PATH"
+rm -f "$ZIP_PATH" "$DMG_PATH" "$SCRIPT_DIR/tmp_rw.dmg"
 
 # --- 1. Compile to standalone .app using PyInstaller ---
 echo "[1/5] Compiling macOS standalone binary..."
@@ -73,14 +73,21 @@ echo "[5/5] Creating styled DMG installer..."
 
 TMP_DMG="$SCRIPT_DIR/tmp_rw.dmg"
 VOLUME_NAME="$APP_NAME"
+STAGING_DIR="$(mktemp -d)"
 
-# Create a writable DMG from the .app
-hdiutil create -srcfolder "$APP_BUNDLE" \
+# Stage all DMG contents
+cp -r "$APP_BUNDLE" "$STAGING_DIR/$APP_NAME.app"
+cp "$SCRIPT_DIR/ReadMeFirst.html" "$STAGING_DIR/ReadMeFirst.html"
+
+# Create a writable DMG from the staging dir
+hdiutil create -srcfolder "$STAGING_DIR" \
                -volname "$VOLUME_NAME" \
                -fs HFS+ \
                -format UDRW \
-               -size 80m \
+               -size 120m \
                "$TMP_DMG" > /dev/null 2>&1
+
+rm -rf "$STAGING_DIR"
 
 # Mount it
 DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "$TMP_DMG" | awk 'END{print $1}')
@@ -108,6 +115,7 @@ tell application "Finder"
         set background picture of viewOptions to file ".background:background.png"
         set position of item "$APP_NAME.app" of container window to {180, 195}
         set position of item "Applications" of container window to {480, 195}
+        set position of item "ReadMeFirst.html" of container window to {330, 370}
         close
         open
         update without registering applications
