@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-intel:
-    runs-on: macos-13   # Intel Mac runner
+    runs-on: macos-12   # Intel Mac runner (x86_64)
 
     steps:
       - name: Checkout
