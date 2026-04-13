@@ -339,6 +339,20 @@
     }
     .submit-fine-print a { color: var(--accent); text-decoration: underline; }
 
+    /* ── VALIDATION ERROR ── */
+    .validation-error {
+      display: none;
+      background: rgba(255,69,58,0.1);
+      border: 1px solid rgba(255,69,58,0.3);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--red);
+      line-height: 1.5;
+    }
+    .validation-error strong { color: var(--red); }
+
     /* ── SUCCESS STATE ── */
     .success-state {
       display: none;
@@ -578,6 +592,7 @@
           No account needed. No email collected. Serial number is stripped before sending.<br>
           <a href="https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac" target="_blank">View our open-source code</a> to see exactly what happens.
         </p>
+        <div class="validation-error" id="validation-error"></div>
       </div>
     </div>
 
@@ -657,10 +672,37 @@
     return text;
   }
 
+  // ── Validate: reject Apple Silicon data and random text ──
+  function validateIoreg(text) {
+    var errorEl = document.getElementById('validation-error');
+    errorEl.style.display = 'none';
+
+    // Must contain AppleSmartBattery
+    if (text.indexOf('AppleSmartBattery') === -1) {
+      errorEl.innerHTML = '<strong>This does not look like battery data.</strong> Please run the command above in Terminal and paste the full output.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+
+    // Detect Apple Silicon data
+    if (text.indexOf('CycleCountLastQmax') !== -1 || text.indexOf('MaximumPackVoltage') !== -1) {
+      errorEl.innerHTML = '<strong>This looks like Apple Silicon data, not Intel.</strong> Battery Guardian already supports Apple Silicon. This page is only for Intel Mac data collection. <a href="/" style="color:var(--accent)">Download the app</a> to scan your Apple Silicon Mac.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+
+    return true;
+  }
+
   // ── Submit data ──
   function submitData() {
     var rawText = textarea.value.trim();
     if (rawText.length < 50) return;
+
+    // Validate before submitting
+    if (!validateIoreg(rawText)) {
+      return;
+    }
 
     var label = "";
     radios.forEach(function(r) { if (r.checked) label = r.value; });
