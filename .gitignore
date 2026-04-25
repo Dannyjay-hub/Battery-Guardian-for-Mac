@@ -30,3 +30,11 @@ battery_guardian_logs*.json
 
 # One-off debug / verification scripts
 verify*.py
+
+# Compiled app bundle (distributed via GitHub Releases)
+Battery Guardian.app/
+*.app/
+
+# Distribution zips (uploaded to GitHub Releases)
+Battery_Guardian*.zip
+Battery_Guardian.zip
