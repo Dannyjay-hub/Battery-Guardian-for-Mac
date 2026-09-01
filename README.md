@@ -2,9 +2,9 @@
 
 **A macOS battery forensics tool that detects counterfeit, reprogrammed, and spoofed MacBook batteries.**
 
-Battery Guardian reads directly from the Texas Instruments Smart Battery System (SBS) gas gauge chip inside your battery — the same registers Apple's own diagnostics use — and applies 8 independent physics-based forensic checks to determine whether your battery is genuine or faked.
+Battery Guardian reads battery-gauge telemetry exposed by macOS and evaluates it with a versioned, model-aware forensic policy. It records nine possible signals, but only supported signals for the detected gauge profile can affect a verdict.
 
-No heuristics. No guessing. Pure chip-level forensics.
+Battery Guardian detects contradictions and known reset signatures. It does not cryptographically prove that a battery is Apple-original.
 
 ---
 
@@ -18,17 +18,17 @@ The MacBook battery replacement market is flooded with counterfeit and reprogram
 
 Existing tools (CoconutBattery, iStatMenus, system profiler) only read and display the data the chip reports. They have no way to tell you if that data is real.
 
-Battery Guardian doesn't just read the data — it **audits it** using invariants from the TI firmware specification that a spoofed chip cannot fake without contradicting itself.
+Battery Guardian doesn't just display the data — it **audits it** against documented register relationships and labelled empirical signatures, while reporting when the available evidence is insufficient.
 
 ---
 
 ## Features
 
-- **8 independent forensic checks** — each grounded in Texas Instruments SBS battery management IC specifications
+- **9 documented forensic signals** — activated only where the gauge profile and evidence support them
 - **Instant results** — single `ioreg` snapshot, no waiting
 - **Physics-based scoring** — weighted penalty system with documented thresholds
 - **Monthly history trends** — track health and cycles over time automatically
-- **Battery manufacture date** — derived from the chip's internal hour counter
+- **Operating-time history** — shown as powered-on time, not mislabelled as a manufacture date
 - **Expandable detailed scan log** — per-entry history with full metrics
 - **Scheduled headless scanning** — macOS LaunchAgent automation
 - **Shareable forensic report** — plain-text export for clipboard sharing
@@ -45,96 +45,32 @@ MacBook batteries contain a **Texas Instruments Smart Battery System (SBS) gas g
 - Maintains a **DataFlash** memory containing calibration history, cycle counts, time counters, and per-cell measurements
 - Exposes all of this via **SMBus** to the host, which macOS reads through IOKit and surfaces via `ioreg`
 
-Battery Guardian's forensic checks are grounded in the Impedance Track™ specification and DataFlash register structure, which are consistent across TI's SBS-compliant chip family. The checks have been validated against real hardware across multiple MacBook generations.
+TI gauge families share concepts, but register meanings, defaults, units, and availability vary by model. Battery Guardian therefore selects an explicit profile and refuses to make an authenticity conclusion when required evidence is unavailable.
 
 Data is read using:
 ```bash
 ioreg -l -w0 -r -c AppleSmartBattery
 ```
 
-### The 8 Forensic Checks
+### The 9 Forensic Signals
 
-Each check is validated against Texas Instruments documentation. Every check passes silently on your genuine M1 MacBook (verified: 0.005% discrepancy on real hardware).
-
----
-
-#### CHECK 1 — Physics Check: Zero Entropy `[40 pts]`
-
-**What it checks:** Whether all three cell Qmax values are identical.
-
-**The physics:** The IT algorithm refines each cell's Qmax independently. Lithium cells manufactured separately always diverge in capacity due to microscopic chemistry differences. After 5+ cycles, genuine cells show measurable variance. If all three are identical, the values are hardcoded.
-
-**Reference:** TI bq40z651 TRM §5.3 — Qmax and Impedance Track™
+The policy currently models reset signatures, Qmax consistency, capacity relationships, DOD0 records, clock integrity, calibration timeline, pack voltage, historical continuity, and DataFlash writes. Some remain observation-only until their model mapping and classification threshold have enough primary documentation and labelled validation.
 
 ---
 
-#### CHECK 2 — Internal Resistance Gap `[25 pts]`
+| Signal | Current policy |
+|---|---|
+| Model-specific reset signature | Active for `bq20z451`; requires the combined cycle, DOD0-sentinel, and zero-write pattern |
+| Calibration timeline | Active when the mapped lifetime fields are present |
+| Clock integrity | Active when the profile exposes both counters and enough samples exist |
+| Qmax consistency | Observation-only pending labelled validation |
+| Capacity relationship | Observation-only pending labelled validation |
+| DOD0 records | Profile evidence; identical non-sentinel values are not a universal failure |
+| Pack voltage | Disabled pending hardware/topology profiles |
+| Historical continuity | Observation-only; elapsed wall time alone is not enough |
+| DataFlash writes | Used only as part of a validated profile-specific pattern |
 
-**What it checks:** Whether the gap between chemical capacity (Qmax) and usable capacity (FCC) is suspiciously small.
-
-**The physics:** As a battery ages, internal resistance builds up. Energy is lost to heat during discharge — Full Charge Capacity (FCC) falls progressively below Qmax. This gap grows with every cycle. After 30+ cycles (~1 month), it is never less than ~1% of design capacity on genuine hardware. Raw mAh values are compared (not rounded percentages) to avoid integer-truncation artifacts.
-
-**Reference:** TI SLUU276 §4.2 — Impedance Track™ Algorithm
-
----
-
-#### CHECK 3 — Lazy Cloning `[30 pts]`
-
-**What it checks:** Whether Qmax[0] exactly matches DesignCapacity.
-
-**The physics:** The most common battery spoof sets Qmax = DesignCapacity to always report 100% health. After 5+ calibration cycles, Qmax should be refined below the rated spec. An exact match is the "lazy clone" signature.
-
-**Reference:** TI bq40z651 TRM §5.3.1 — Qmax Initialisation
-
----
-
-#### CHECK 4 — DOD0 Calibration Tampering `[30 pts]`
-
-**What it checks:** Whether the Depth of Discharge calibration record equals DesignCapacity.
-
-**The physics:** DOD0 records how many mAh were extracted during the most recent full calibration run. No real cell ever delivers exactly its rated capacity — the value is always slightly less. A DOD0 equal to DesignCapacity is fabricated. This catches spoofed batteries that patch the Qmax registers but forget to sanitise the calibration subsystem.
-
-**Reference:** TI SLUU276 §5.4 — DOD0 Calibration
-
----
-
-#### CHECK 5 — Clock Integrity `[50 pts]`
-
-**What it checks:** Whether two independent time counters agree.
-
-**The physics:** The chip samples temperature every ~225 seconds (`TemperatureSamples`) and separately maintains `TotalOperatingTime` in hours. Both measure elapsed time using completely independent mechanisms. On genuine hardware they agree within ~5% (measured: 0.005% on M4 MacBook Pro, 2025). A spoofer who resets `TotalOperatingTime` to hide age rarely knows to also reset `TemperatureSamples`. The cross-counter discrepancy exposes the tampering.
-
-**Reference:** TI bq40z651 TRM §6.1 — Gas Gauge Time Registers
-
----
-
-#### CHECK 6 — Calibration Timeline Paradox `[50 pts]`
-
-**What it checks:** Whether `CycleCountLastQmax` > `CycleCount`.
-
-**The physics:** `CycleCountLastQmax` records the cycle number at which the most recent Qmax calibration occurred. It can never legally exceed `CycleCount` — a calibration cannot happen in the future. If it does, the cycle counter was reset after a calibration event. This is a binary, deterministic signal: either physically valid or mathematically impossible.
-
-**Reference:** TI bq40z651 TRM §5.3.2 — CycleCount Registers
-
----
-
-#### CHECK 7 — Chip Origin `[30 pts]`
-
-**What it checks:** Whether `MaximumPackVoltage` is consistent with a 3-cell battery.
-
-**The physics:** `MaximumPackVoltage` is the highest pack voltage ever recorded in the chip's lifetime. The TI Cell Under Voltage (CUV) protection floor is 3,000 mV/cell. For a genuine 3-cell MacBook pack: minimum = 3,000 × 3 = **9,000 mV**. A value below 9,000 mV means the chip has never operated inside a 3-cell stack — it came from a 2-cell device (phone/tablet).
-
-**Reference:** TI SLUU276 p.101 — CUV Protection Thresholds
-
----
-
-#### CHECK 8 — Frozen Clock `[40 pts]`
-
-**What it checks:** Whether `TotalOperatingTime` has advanced since the last saved scan.
-
-**The physics:** `TotalOperatingTime` is a cumulative hour counter. A genuine chip increments it continuously whenever the system is on. If it hasn't changed in 30+ hours between two scans, the counter is frozen — either the firmware is spoofed or the chip is not a genuine TI gauge. The 30-hour threshold (above the confirmed 24-hour chip update cycle) eliminates false positives from powered-off Macs.
-
-**Note:** Requires two scans taken 30+ hours apart. Silent on the first scan.
+The authoritative modes, thresholds, evidence levels, and minimum fields live in [`forensics/contract.json`](forensics/contract.json). Python and Swift tests run the same archived fixtures against this contract.
 
 ---
 
@@ -153,19 +89,21 @@ Each failed check adds a weighted penalty to the total score:
 | Chip Origin | 30 |
 | Internal Resistance | 25 |
 
-**Verdict thresholds:**
+**Current verdicts:**
 - `score ≥ 40` → **SPOOFED**
 - `score > 0` → **SUSPICIOUS**
-- `score = 0` → **GENUINE**
+- supported evidence complete, `score = 0` → **NO_ANOMALIES**
+- required evidence missing or gauge unsupported → **INSUFFICIENT_EVIDENCE**
+- scan failure → **ERROR**
 
-A single high-confidence check (≥ 40 pts) is sufficient for a SPOOFED verdict.
+`NO_ANOMALIES` means the active supported checks found no contradiction. It is not proof of manufacturer provenance.
 
 ---
 
 ## Requirements
 
-**Current release:**
-- macOS 10.14 Mojave or later
+**Native v2:**
+- macOS 14 Sonoma or later
 - MacBook with a built-in battery (not compatible with Mac Mini, iMac, Mac Pro, Mac Studio)
 - Python 3.9+ (for running from source only)
 
@@ -177,11 +115,9 @@ A single high-confidence check (≥ 40 pts) is sufficient for a SPOOFED verdict.
 
 ## Install (Pre-built)
 
-1. Download `BatteryGuardian_v1.3.2.dmg` from [Releases](https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases)
-2. Open the DMG and drag **Battery Guardian** to the Applications folder
-3. Open **ReadMeFirst.html** inside the DMG for first-launch instructions
-
-> **Gatekeeper:** The app is not notarized. On first launch, right-click → Open instead of double-clicking. If macOS says "cannot be verified", click Cancel — do not move to Trash — then right-click and Open.
+1. Download the current notarized archive from [Releases](https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases)
+2. Unzip it and drag **Battery Guardian** to Applications
+3. Open it normally. A release is not published until strict signature, notarization-ticket, and extracted-archive verification pass.
 
 ---
 
@@ -224,14 +160,13 @@ Scan history is saved to `~/.battery_guardian_log.json`.
 
 ## Build from Source
 
-Requires `pyinstaller`:
+Native releases are built from the Xcode project:
 
 ```bash
-pip3 install pyinstaller
-bash build_release.sh
+TEAM_ID=YOUR_TEAM_ID ./native/build_release.sh
 ```
 
-Output: `BatteryGuardian_v1.3.2.dmg` — a self-contained macOS `.app` bundle packaged as a DMG installer.
+The script signs, notarizes, staples, packages, extracts, and re-verifies the exact ZIP users receive. `build_release.sh` remains only for reproducible legacy Python v1.x builds.
 
 ---
 
@@ -240,7 +175,10 @@ Output: `BatteryGuardian_v1.3.2.dmg` — a self-contained macOS `.app` bundle pa
 ```
 Battery Guardian/
 ├── battery_guardian_web.py   # Entry point — server, CLI, window management
-├── bg_scanner.py             # Core forensic engine — all 8 checks
+├── bg_forensics.py           # Shared Python implementation of the forensic contract
+├── forensics/                # Versioned policy and cross-language evidence fixtures
+├── native/                   # SwiftUI v2 app, tests, and release pipeline
+├── bg_scanner.py             # Legacy Python scan orchestration
 ├── bg_analysis.py            # Pure analysis functions (parsing, scoring, trends)
 ├── bg_automation.py          # LaunchAgent installer and share report generator
 ├── bg_config.py              # Scoring constants and configuration
@@ -250,9 +188,8 @@ Battery Guardian/
 ├── bg_server.py              # HTTP request handler for the web UI
 ├── bg_template.html          # Frontend UI (HTML/CSS/JS)
 ├── bg_guide.html             # Forensic methodology guide page
-├── ReadMeFirst.html          # DMG install guide (bundled in installer)
 ├── dmg_background.png        # DMG window background
-└── build_release.sh          # PyInstaller + DMG build script
+└── build_release.sh          # Legacy PyInstaller + DMG build script
 ```
 
 ---
@@ -263,7 +200,7 @@ Battery Guardian is open source and contributions are welcome. Areas where help 
 
 - **Expanding the forensic engine** — additional DataFlash register checks
 - **iPhone/iPad support** — extending forensics to Apple mobile batteries
-- **Swift/native rewrite** — future direction for Mac App Store distribution
+- **Native engine validation** — expand model profiles and cross-language evidence fixtures
 - **Test cases** — documented examples of spoofed battery register dumps (anonymised)
 
 Please open an issue before submitting a significant PR.

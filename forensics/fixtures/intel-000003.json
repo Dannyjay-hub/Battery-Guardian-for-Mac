@@ -1,0 +1,23 @@
+{
+  "id": "intel-000003",
+  "label": "genuine-self-reported",
+  "data": {
+    "DeviceName": "bq40z651",
+    "CycleCount": 127,
+    "DesignCapacity": 8579,
+    "AppleRawMaxCapacity": 8179,
+    "Qmax": [8895, 8901, 8859],
+    "DOD0": [648, 648, 656],
+    "DataFlashWriteCount": 10160,
+    "TotalOperatingTime": 19929,
+    "TemperatureSamples": 318880,
+    "CycleCountLastQmax": 127,
+    "MaximumPackVoltage": 13161
+  },
+  "expected": {
+    "profile": "bq40z651",
+    "verdict": "NO_ANOMALIES",
+    "score": 0,
+    "complete": true
+  }
+}

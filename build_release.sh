@@ -1,5 +1,5 @@
 #!/bin/bash
-# build_release.sh — Builds Battery Guardian standalone App using PyInstaller
+# build_release.sh — Legacy Python v1.x builder. New releases use native/build_release.sh.
 # Produces both a ZIP (fallback) and a styled DMG installer.
 # Usage: ./build_release.sh
 
@@ -31,6 +31,7 @@ python3 -m PyInstaller --name "$APP_NAME" \
             --icon "$SCRIPT_DIR/AppIcon.icns" \
             --add-data "$SCRIPT_DIR/bg_template.html:." \
             --add-data "$SCRIPT_DIR/bg_guide.html:." \
+            --add-data "$SCRIPT_DIR/forensics/contract.json:forensics" \
             "$SCRIPT_DIR/battery_guardian_web.py"
 
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -76,7 +77,9 @@ STAGING_DIR="$(mktemp -d)"
 
 # Stage ALL DMG contents (including symlink and background)
 cp -r "$APP_BUNDLE" "$STAGING_DIR/$APP_NAME.app"
-cp "$SCRIPT_DIR/ReadMeFirst.html" "$STAGING_DIR/ReadMeFirst.html"
+if [ -f "$SCRIPT_DIR/ReadMeFirst.html" ]; then
+    cp "$SCRIPT_DIR/ReadMeFirst.html" "$STAGING_DIR/ReadMeFirst.html"
+fi
 ln -sf /Applications "$STAGING_DIR/Applications"
 mkdir -p "$STAGING_DIR/.background"
 cp "$SCRIPT_DIR/dmg_background.png" "$STAGING_DIR/.background/background.png"
@@ -110,7 +113,9 @@ tell application "Finder"
         set background picture of viewOptions to file ".background:background.png"
         set position of item "$APP_NAME.app" of container window to {180, 240}
         set position of item "Applications" of container window to {480, 240}
-        set position of item "ReadMeFirst.html" of container window to {330, 65}
+        if exists item "ReadMeFirst.html" of container window then
+            set position of item "ReadMeFirst.html" of container window to {330, 65}
+        end if
         close
         open
         update without registering applications

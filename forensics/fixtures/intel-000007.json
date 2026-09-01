@@ -1,0 +1,17 @@
+{
+  "id": "intel-000007",
+  "label": "third-party-self-reported",
+  "data": {
+    "DeviceName": "bq20z451",
+    "CycleCount": 1,
+    "DesignCapacity": 8980,
+    "AppleRawMaxCapacity": 9062,
+    "Qmax": [8960, 8980, 8970]
+  },
+  "expected": {
+    "profile": "bq20z451",
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "score": 0,
+    "complete": false
+  }
+}

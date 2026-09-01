@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "battery-guardian-download",
+  "main": "worker.js",
+  "compatibility_date": "2026-04-25",
+  "kv_namespaces": [
+    {
+      "binding": "ANALYTICS",
+      "id": "40e25c784486433992facc1f47f63950"
+    }
+  ]
+}

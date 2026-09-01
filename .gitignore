@@ -31,6 +31,9 @@ battery_guardian_logs*.json
 # One-off debug / verification scripts
 verify*.py
 
+# Local Cloudflare CLI state
+.wrangler/
+
 # Compiled app bundle (distributed via GitHub Releases)
 Battery Guardian.app/
 *.app/

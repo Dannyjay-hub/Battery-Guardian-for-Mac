@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import socketserver
+import secrets
 import subprocess
 import sys
 import threading
@@ -102,6 +103,8 @@ if __name__ == "__main__":
     if not port_found:
         logger.error(f"No open port found ({PORT}-{PORT + 9})")
         sys.exit(1)
+
+    AppHandler.configure(api_token=secrets.token_urlsafe(32), port=active_port)
 
     server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     server_thread.start()

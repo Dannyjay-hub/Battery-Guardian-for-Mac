@@ -18,6 +18,10 @@ state = {
     "score": 0,
     "health_score": 0,
     "scan_mode": "full",
+    "policy_version": "--",
+    "gauge_profile": "--",
+    "evidence_complete": False,
+    "missing_fields": [],
     "mac_model": "--",
     "trends": {},
     "metrics": {

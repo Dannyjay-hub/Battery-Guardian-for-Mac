@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "policy_version": "2026.08.31-alpha.1",
+  "verdicts": [
+    "NO_ANOMALIES",
+    "SUSPICIOUS",
+    "SPOOFED",
+    "INSUFFICIENT_EVIDENCE",
+    "ERROR"
+  ],
+  "spoofed_score_threshold": 40,
+  "profiles": {
+    "bq20z451": {
+      "family_analogue": "bq20z40/bq20z45",
+      "evidence_level": "family-primary-plus-empirical",
+      "minimum_fields": [
+        "DeviceName",
+        "CycleCount",
+        "DesignCapacity",
+        "Qmax",
+        "DOD0",
+        "DataFlashWriteCount"
+      ],
+      "cell_count": 3,
+      "active_checks": [
+        "bq20z451_reset_signature",
+        "calibration_timeline",
+        "clock_integrity"
+      ]
+    },
+    "bq40z651": {
+      "family_analogue": "bq40z50-R1/R2",
+      "evidence_level": "family-primary-plus-empirical",
+      "minimum_fields": [
+        "DeviceName",
+        "CycleCount",
+        "DesignCapacity",
+        "Qmax",
+        "DOD0",
+        "DataFlashWriteCount",
+        "TotalOperatingTime",
+        "TemperatureSamples",
+        "CycleCountLastQmax",
+        "MaximumPackVoltage"
+      ],
+      "cell_count": 3,
+      "active_checks": [
+        "calibration_timeline",
+        "clock_integrity"
+      ]
+    }
+  },
+  "checks": {
+    "qmax_zero_entropy": {
+      "mode": "observe_only",
+      "evidence_level": "family-primary-plus-hypothesis",
+      "reason": "TI documents per-cell learning but not a universal five-cycle authenticity threshold."
+    },
+    "internal_resistance_gap": {
+      "mode": "observe_only",
+      "evidence_level": "family-primary-plus-hypothesis",
+      "reason": "FCC/Qmax relationships are state-dependent; fixed authenticity thresholds are not TI-validated."
+    },
+    "lazy_clone": {
+      "mode": "observe_only",
+      "evidence_level": "family-primary-plus-hypothesis",
+      "reason": "Initial Qmax can equal DesignCapacity until valid learning conditions occur."
+    },
+    "dod0_integrity": {
+      "mode": "profile_only",
+      "evidence_level": "family-primary-plus-empirical",
+      "reason": "DOD0 units and defaults differ by device; identical cells are not a universal failure."
+    },
+    "dataflash_write_history": {
+      "mode": "profile_only",
+      "evidence_level": "empirical",
+      "reason": "The Apple-exposed counter semantics are not in the reviewed public exact-device documentation."
+    },
+    "clock_integrity": {
+      "mode": "active_when_present",
+      "score": 50,
+      "evidence_level": "family-primary-plus-empirical",
+      "minimum_temperature_samples": 500,
+      "pass_difference_percent": 5,
+      "fail_difference_percent": 20,
+      "seconds_per_temperature_sample": 225
+    },
+    "calibration_timeline": {
+      "mode": "active_when_present",
+      "score": 50,
+      "evidence_level": "family-primary",
+      "reason": "A last-Qmax cycle cannot exceed the current cycle when field mappings share documented semantics."
+    },
+    "chip_origin": {
+      "mode": "disabled_pending_hardware_profile",
+      "evidence_level": "hypothesis",
+      "reason": "A global 9000 mV threshold assumes a three-cell topology and ignores model-specific defaults."
+    },
+    "frozen_clock": {
+      "mode": "disabled_pending_powered_observation",
+      "evidence_level": "hypothesis",
+      "reason": "Wall time alone does not prove the gauge was powered and expected to advance."
+    },
+    "bq20z451_reset_signature": {
+      "mode": "active",
+      "score": 55,
+      "evidence_level": "empirical",
+      "minimum_cycles": 10,
+      "dod0_value": 16384,
+      "dataflash_write_count": 0,
+      "reason": "Combined model-specific reset signature observed in the strongest labeled Intel submission."
+    }
+  }
+}

@@ -1,0 +1,46 @@
+name: BatteryGuardian
+options:
+  bundleIdPrefix: com.dannyjay
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  xcodeVersion: "16.0"
+
+targets:
+  BatteryGuardian:
+    type: application
+    platform: macOS
+    sources:
+      - path: BatteryGuardian
+    resources:
+      - path: ../forensics/contract.json
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dannyjay.batteryguardian
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Battery Guardian
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Daniel Jesusegun"
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        ARCHS: "$(ARCHS_STANDARD)"
+        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: "-"
+        Release:
+          CODE_SIGN_IDENTITY: "Developer ID Application"
+  BatteryGuardianTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: BatteryGuardianTests
+    dependencies:
+      - target: BatteryGuardian
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"

@@ -60,8 +60,11 @@
             animation: fadeIn 0.5s ease;
         }
         .verdict-badge.genuine { background: rgba(48,209,88,0.15); color: var(--green); }
+        .verdict-badge.no-anomalies { background: rgba(48,209,88,0.15); color: var(--green); }
         .verdict-badge.spoofed { background: rgba(255,69,58,0.15); color: var(--red); }
         .verdict-badge.suspicious { background: rgba(255,214,10,0.15); color: var(--orange); }
+        .verdict-badge.insufficient { background: rgba(255,214,10,0.15); color: var(--orange); }
+        .verdict-badge.error { background: rgba(255,69,58,0.15); color: var(--red); }
         .verdict-badge.analyzing { background: rgba(10,132,255,0.15); color: var(--accent); }
         .verdict-badge.cancelled { background: rgba(134,134,139,0.15); color: var(--sub); }
         .verdict-badge.ready { background: var(--panel); color: var(--sub); }
@@ -284,28 +287,32 @@
     <div class="modal-overlay" id="about-modal">
         <div class="modal">
             <h2>About Battery Guardian</h2>
-            <p><strong>Battery Guardian</strong> is a forensic tool that detects counterfeit, reprogrammed, or spoofed MacBook batteries by analyzing the Texas Instruments gas gauge chip data.</p>
-            <p><strong>Health Score:</strong> A composite 0–100 rating combining capacity, cycle count, and spoof indicators.</p>
-            <p><strong>Physics Check (Zero Entropy):</strong> Verifies that individual cells have natural capacity variance. Spoofed batteries hardcode identical values across all three cells.</p>
-            <p><strong>Internal Resistance:</strong> Compares chemical capacity (Qmax) vs deliverable capacity (FCC). After 30+ cycles, a genuine battery always shows a measurable impedance gap.</p>
-            <p><strong>Lazy Clone:</strong> Checks whether Qmax exactly matches Design Capacity, the most common DataFlash hack to fake 100% health.</p>
-            <p><strong>DOD0 Calibration:</strong> Verifies the depth-of-discharge calibration record is genuine. A DOD0 equal to Design Capacity is fabricated, as real calibrations always discharge slightly less.</p>
-            <p><strong>Clock Integrity:</strong> Cross-checks two independent TI chip counters. A discrepancy ≥20% means a counter was reset to hide the battery's real age.</p>
-            <p><strong>Calibration Paradox:</strong> CycleCountLastQmax can never exceed CycleCount. If it does, the cycle counter was reset, which is physically impossible without tampering.</p>
-            <p><strong>Chip Origin:</strong> A 3-cell MacBook pack cannot drop below 9,000mV (TI CUV floor). A lower MaximumPackVoltage means the chip came from a 2-cell device.</p>
-            <p><strong>Frozen Clock:</strong> TotalOperatingTime must increment continuously. If unchanged in 30+ hours between scans, the firmware counter is disabled or spoofed.</p>
+            <p><strong>Battery Guardian</strong> looks for evidence of reprogramming and contradictory records in supported Texas Instruments battery-gauge profiles.</p>
+            <p><strong>Nine forensic signals:</strong> The project records nine possible signals, but only the subset supported by the detected gauge profile and current evidence policy can affect a verdict.</p>
+            <p><strong>Model-aware policy:</strong> DOD0 values, learned capacity, lifetime counters, calibration history, pack voltage, and data-flash writes do not have universal meanings across every TI gauge.</p>
+            <p><strong>Verdict scope:</strong> “No anomalies” means the supported checks found no contradiction in the available telemetry. It does not prove that the pack is Apple-original.</p>
+            <p><strong>Evidence limits:</strong> Signals whose public documentation or labelled validation is incomplete remain observation-only and cannot classify a battery.</p>
             <button class="modal-close" onclick="hideAbout()">Close</button>
         </div>
     </div>
 
     <script>
+        const API_TOKEN = '{{API_TOKEN}}';
+        const apiFetch = (url, options = {}) => fetch(url, {
+            ...options,
+            headers: {
+                ...(options.headers || {}),
+                'Content-Type': 'application/json',
+                'X-Battery-Guardian-Token': API_TOKEN
+            }
+        });
         let isRunning = false;
         let detailLoaded = false;
 
         // ── Init: restore last result or auto-scan ────────────────────────
         (async () => {
             try {
-                const res = await fetch('/api/info');
+                const res = await apiFetch('/api/info');
                 const info = await res.json();
                 let txt = `v${info.version} | ${info.model}`;
                 if (info.serial && info.serial !== '--') {
@@ -315,7 +322,7 @@
             } catch(e) {}
 
             try {
-                const res = await fetch('/api/status');
+                const res = await apiFetch('/api/status');
                 const d = await res.json();
                 if (d.status === 'complete' && d.log && d.log.length > 0) {
                     renderResult(d);
@@ -341,12 +348,12 @@
             updateRing(0, 'var(--accent)');
             document.getElementById('progress').style.width = '0%';
 
-            await fetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode: 'full' }) });
+            await apiFetch('/api/scan', { method: 'POST', body: JSON.stringify({ mode: 'full' }) });
             pollStatus();
         }
 
         async function pollStatus() {
-            const res = await fetch('/api/status');
+            const res = await apiFetch('/api/status');
             const d = await res.json();
 
             document.getElementById('progress').style.width = d.progress + '%';
@@ -387,7 +394,9 @@
 
             // Verdict + ring
             const vClass = d.verdict === 'SPOOFED' ? 'spoofed' :
-                           d.verdict === 'GENUINE' ? 'genuine' :
+                           d.verdict === 'NO_ANOMALIES' ? 'no-anomalies' :
+                           d.verdict === 'INSUFFICIENT_EVIDENCE' ? 'insufficient' :
+                           d.verdict === 'ERROR' ? 'error' :
                            d.verdict === 'CANCELLED' ? 'cancelled' : 'suspicious';
             updateVerdict(d.verdict, vClass);
             const hs = d.health_score || 0;
@@ -445,7 +454,7 @@
         // ── History: monthly summary ──────────────────────────────────────
         async function loadHistory() {
             try {
-                const res = await fetch('/api/history');
+                const res = await apiFetch('/api/history');
                 const logs = await res.json();
                 const tbody = document.getElementById('history-body');
                 if (!logs || logs.length === 0) return;
@@ -481,7 +490,7 @@
         // ── History: detailed per-scan view ───────────────────────────────
         async function populateDetailHistory() {
             try {
-                const res = await fetch('/api/history');
+                const res = await apiFetch('/api/history');
                 const logs = await res.json();
                 const tbody = document.getElementById('detail-history-body');
                 if (!logs || logs.length === 0) {
@@ -526,7 +535,7 @@
             const [h, m] = timeStr.split(':');
             if (!confirm(`Schedule daily scan at ${timeStr} for ${days} days?`)) return;
             try {
-                const res = await fetch('/api/automate', {
+                const res = await apiFetch('/api/automate', {
                     method: 'POST',
                     body: JSON.stringify({ days: parseInt(days), hour: parseInt(h), minute: parseInt(m) })
                 });
@@ -536,14 +545,14 @@
         }
 
         async function exportLogs() {
-            const res = await fetch('/api/export', { method: 'POST' });
+            const res = await apiFetch('/api/export', { method: 'POST' });
             const data = await res.json();
             alert(data.success ? 'Exported to:\n' + data.msg : 'Error: ' + data.msg);
         }
 
         async function copyReport() {
             try {
-                const res = await fetch('/api/share', { method: 'POST' });
+                const res = await apiFetch('/api/share', { method: 'POST' });
                 const data = await res.json();
                 await navigator.clipboard.writeText(data.report);
                 alert('Report copied to clipboard!');

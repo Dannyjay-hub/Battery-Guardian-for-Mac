@@ -1,0 +1,13 @@
+{
+  "id": "intel-000005",
+  "label": "third-party-self-reported",
+  "data": {
+    "DeviceName": "bq20z451"
+  },
+  "expected": {
+    "profile": "bq20z451",
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "score": 0,
+    "complete": false
+  }
+}

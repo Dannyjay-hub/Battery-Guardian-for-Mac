@@ -76,16 +76,17 @@
         <p>Battery Guardian was built to uncover the hidden truth about your MacBook's battery. While macOS provides a simple "Normal" or "Service Recommended" label, <strong>Battery Guardian goes deeper by analyzing the raw hardware data</strong> from the TI Smart Battery System gas gauge chip using physics-based forensic checks.</p>
 
         <div class="highlight-box">
-            <strong>Why is this necessary?</strong> The secondary market for MacBooks is flooded with devices carrying "fake" or "reprogrammed" batteries. Dishonest sellers use hardware tools (like JCID or NLBA1) to flash the firmware on aging batteries, resetting the cycle count to zero and forcing health to 100%, to sell worn-out Macs at a premium. Battery Guardian catches these operations using physics that cannot be faked without creating internal contradictions.
+            <strong>Why is this necessary?</strong> Reprogrammed battery controllers can report plausible health and cycle data. Battery Guardian looks for supported contradictions and known reset patterns in the wider telemetry, while clearly reporting when the evidence is incomplete.
         </div>
 
-        <h2>1. The Health Score (/100)</h2>
-        <p>The large number in the center ring is your Forensic Health Score. All batteries start at <strong>100</strong>.</p>
+        <h2>1. Health Score and Forensic Verdict</h2>
+        <p>The health score summarises physical condition and forensic penalties. It must be read separately from the evidence verdict:</p>
         <ul>
-            <li><strong>100 to 90 (Genuine &amp; Healthy):</strong> All forensic checks pass and the battery retains strong capacity.</li>
-            <li><strong>89 to 70 (Aging):</strong> Hardware checks passed, the battery is genuine but has experienced natural chemical aging. Deductions scale with how much capacity has been lost.</li>
-            <li><strong>69 to 40 (Suspicious or Worn Out):</strong> The battery may be heavily degraded, triggering minor flags, or contain uncalibrated third-party cells without active spoofing.</li>
-            <li><strong>Below 40 (Spoofed / Forged):</strong> At least one forensic check detected a physical impossibility. The firmware has been actively tampered with.</li>
+            <li><strong>NO ANOMALIES:</strong> Supported checks found no contradiction; this is not proof of Apple provenance.</li>
+            <li><strong>SUSPICIOUS:</strong> The active policy found a lower-confidence contradiction that needs review.</li>
+            <li><strong>SPOOFED:</strong> Strong profile-supported evidence crossed the policy threshold.</li>
+            <li><strong>INSUFFICIENT EVIDENCE:</strong> The gauge is unsupported or required telemetry is missing.</li>
+            <li><strong>ERROR:</strong> The scan did not complete, so no authenticity conclusion was made.</li>
         </ul>
 
         <h2>2. Core Hardware Metrics</h2>
@@ -94,7 +95,7 @@
         <div class="metric-grid">
             <div class="card">
                 <h3>Cycles</h3>
-                <p>A full discharge and recharge counts as one cycle. A genuine battery legally ages, reprogrammers reset this to zero.</p>
+                <p>The cycle counter reported by the gauge. It becomes meaningful evidence only when compared with compatible records.</p>
             </div>
             <div class="card">
                 <h3>Health</h3>
@@ -102,11 +103,11 @@
             </div>
             <div class="card">
                 <h3>Entropy</h3>
-                <p>The capacity gap between the strongest and weakest cell. Real cells always diverge. A gap of exactly 0 mAh after 5+ cycles is physically impossible, values were hard-coded.</p>
+                <p>The capacity gap between reported per-cell Qmax values. It is useful context but is not a universal pass/fail rule.</p>
             </div>
             <div class="card">
-                <h3>Battery Made</h3>
-                <p>Manufacture date derived from <code>TotalOperatingTime</code>, the chip's cumulative hour counter since first activation. Provides a legitimacy signal independent of cycle count.</p>
+                <h3>Operating Time</h3>
+                <p><code>TotalOperatingTime</code> is powered-on time. It is not the SBS manufacture date and is never presented as one.</p>
             </div>
             <div class="card">
                 <h3>Write Ratio</h3>
@@ -114,79 +115,53 @@
             </div>
             <div class="card">
                 <h3>Temp</h3>
-                <p>Live reading from the internal thermistor. Third-party batteries sometimes wire resistors instead of real thermistors, temperatures will be static or physically implausible.</p>
+                <p>Live thermistor reading converted from deciKelvin. One reading alone is not an authenticity test.</p>
             </div>
         </div>
 
-        <h2>3. The 8 Forensic Checks</h2>
-        <p>Battery Guardian runs 8 independent checks on every scan. All 8 appear in the log, either as a pass, fail, or informational notice. Each check is grounded in TI Smart Battery System firmware specifications.</p>
+        <h2>3. The 9 Forensic Signals</h2>
+        <p>The project models nine possible signals: reset signature, Qmax consistency, capacity relationship, DOD0 records, clock integrity, calibration timeline, pack voltage, historical continuity, and DataFlash writes. Only the subset active for the detected gauge profile can affect a verdict.</p>
 
         <div class="card">
-            <span class="badge red">Fail Trigger: 40 pts</span>
-            <h3>Physics Check: Zero Entropy</h3>
-            <p><strong>What it is:</strong> The TI Impedance Track™ algorithm maintains an independent Qmax value per cell, continuously refined during calibration. Lithium cells made in separate production runs always diverge in chemistry. After 5+ cycles, genuine cells always have measurable Qmax variance.</p>
-            <p><strong>Why it fails on fakes:</strong> When firmware is flashed with fake capacity data, programmers copy a single value across all three cell registers. If all Qmax values are identical after 5+ cycles, the data is hard-coded, not measured.</p>
+            <span class="badge orange">Observation only</span>
+            <h3>Qmax Consistency and Capacity Relationship</h3>
+            <p>The gauge may learn per-cell Qmax values and report usable capacity separately. These records are useful context, but fixed five-cycle, 1%, and 3% authenticity thresholds are not universally validated across TI models and learning states.</p>
         </div>
 
         <div class="card">
-            <span class="badge orange">Fail Trigger: 25 pts</span>
-            <h3>Internal Resistance Gap</h3>
-            <p><strong>What it is:</strong> <code>Qmax</code> is the battery's chemical storage capacity. <code>FCC</code> (Full Charge Capacity) is the usable energy delivered under load. As a battery ages, internal resistance builds up and energy is lost to heat, FCC falls progressively below Qmax.</p>
-            <p><strong>Why it fails on fakes:</strong> After 30+ cycles, a gap of less than 1% between Qmax and FCC is physically impossible. Both values likely share the same hardcoded source. Raw mAh values are compared to avoid integer-rounding artifacts.</p>
+            <span class="badge red">Active for bq20z451</span>
+            <h3>Combined Reset Signature</h3>
+            <p>A cycle count above the policy minimum, all DOD0 cells at the model-specific reset sentinel, and a zero DataFlash write count form the strongest labelled signature in the current Intel evidence. No component is treated as proof by itself.</p>
         </div>
 
         <div class="card">
-            <span class="badge red">Fail Trigger: 30 pts</span>
-            <h3>Firmware Hack: Lazy Cloning</h3>
-            <p><strong>What it is:</strong> After 5+ calibration cycles, <code>Qmax[0]</code> should be naturally refined below DesignCapacity. An exact match is the most common spoof pattern, scammers press "Copy Design to Qmax" in their flashing software.</p>
-            <p><strong>Why it fails on fakes:</strong> No genuine battery retains factory-exact capacity after several cycles. The TI algorithm always refines it downward.</p>
+            <span class="badge red">Active when mapped</span>
+            <h3>Calibration Timeline</h3>
+            <p>Where the profile maps compatible fields, <code>CycleCountLastQmax</code> greater than <code>CycleCount</code> is a contradictory history and contributes to the forensic score.</p>
         </div>
 
         <div class="card">
-            <span class="badge red">Fail Trigger: 30 pts</span>
-            <h3>DOD0 Calibration Tampering</h3>
-            <p><strong>What it is:</strong> <code>DOD0</code> records the Depth of Discharge from the most recent calibration run. A genuine calibration always discharges slightly less than DesignCapacity, no real cell ever delivers exactly its rated spec.</p>
-            <p><strong>Why it fails on fakes:</strong> If DOD0 equals DesignCapacity exactly, the calibration history was fabricated. This catches spoofed batteries that patch Qmax but forget to sanitise the calibration subsystem.</p>
-        </div>
-
-        <div class="card">
-            <span class="badge red">Fail Trigger: 50 pts</span>
+            <span class="badge red">Active when mapped</span>
             <h3>Clock Integrity</h3>
-            <p><strong>What it is:</strong> The chip samples temperature every ~225 seconds (<code>TemperatureSamples</code>) and also maintains a cumulative hour counter (<code>TotalOperatingTime</code>). Both measure elapsed time through completely independent mechanisms. On genuine hardware they agree within ~5%.</p>
-            <p><strong>Why it fails on fakes:</strong> A spoofer who resets <code>TotalOperatingTime</code> to hide the battery's age rarely knows to also reset <code>TemperatureSamples</code>. A discrepancy ≥20% exposes the tampering. A single genuine MacBook measured 0.005% discrepancy.</p>
+            <p>Where both counters are available, the policy compares <code>TemperatureSamples</code> with <code>TotalOperatingTime</code>. Thresholds are versioned empirical policy, not claims made by TI.</p>
         </div>
 
         <div class="card">
-            <span class="badge red">Fail Trigger: 50 pts</span>
-            <h3>Calibration Timeline Paradox</h3>
-            <p><strong>What it is:</strong> <code>CycleCountLastQmax</code> records the cycle number at which the most recent Qmax calibration ran. It can never legally exceed <code>CycleCount</code>, a calibration cannot happen in the future.</p>
-            <p><strong>Why it fails on fakes:</strong> If a spoofer resets the cycle counter after a calibration event, the chip's own records will show a calibration that hasn't happened yet. This is a binary, deterministic signal: either physically valid or mathematically impossible.</p>
-        </div>
-
-        <div class="card">
-            <span class="badge orange">Fail Trigger: 30 pts</span>
-            <h3>Chip Origin</h3>
-            <p><strong>What it is:</strong> <code>MaximumPackVoltage</code> is the highest pack voltage ever recorded in the chip's lifetime. The TI Cell Under Voltage (CUV) floor for a 3-cell MacBook pack is 3,000 mV × 3 = 9,000 mV minimum.</p>
-            <p><strong>Why it fails on fakes:</strong> A MaximumPackVoltage below 9,000 mV means this chip has never operated inside a 3-cell stack, it was taken from a 2-cell device (phone or tablet) and re-programmed to impersonate a MacBook chip.</p>
-        </div>
-
-        <div class="card">
-            <span class="badge orange">Fail Trigger: 40 pts</span>
-            <h3>Frozen Clock</h3>
-            <p><strong>What it is:</strong> <code>TotalOperatingTime</code> is a cumulative hour counter that increments continuously whenever the system is powered on. Requires two scans taken 30+ hours apart to compare.</p>
-            <p><strong>Why it fails on fakes:</strong> If the counter hasn't changed between two scans taken 30+ hours apart, the firmware timer is disabled or spoofed. The 30-hour threshold (above the chip's confirmed 24-hour update cycle) eliminates false positives from Macs that were off between scans.</p>
+            <span class="badge orange">Disabled or observation-only</span>
+            <h3>Pack Voltage and Historical Continuity</h3>
+            <p>Pack voltage needs Mac model/topology profiles. Historical clock continuity needs proof that the gauge was powered between scans. Neither currently classifies a battery on its own.</p>
         </div>
 
         <h2>Frequently Asked Questions</h2>
-        <p><strong>Q: My score is 70 but the verdict is still "Genuine". Is my battery okay?</strong><br>Yes. A score of 70 means you have an old, worn battery that has lost some charge capacity. It is genuinely aged, not forged.</p>
+        <p><strong>Q: Does NO ANOMALIES mean my battery is Apple-original?</strong><br>No. It means the supported checks found no contradiction in the available telemetry.</p>
 
         <p><strong>Q: How often should I scan?</strong><br>Once is enough to get a verdict. The Automation tab lets you schedule daily silent scans, useful for tracking degradation over time or building a history log before selling a laptop.</p>
 
         <p><strong>Q: Will Battery Guardian drain my battery?</strong><br>No. Reading the IORegistry via <code>ioreg</code> is a zero-impact system call, equivalent to reading a text file. The entire scan completes in under a second and uses no measurable battery power.</p>
 
-        <p><strong>Q: How is Battery Made calculated?</strong><br>It is derived from <code>TotalOperatingTime</code>, the chip's internal hour counter since first activation. Subtracting those hours from today gives the approximate manufacture date. This is the same technique used by other battery tools.</p>
+        <p><strong>Q: Why is there no Battery Made date?</strong><br><code>TotalOperatingTime</code> measures powered-on hours, not calendar age. Battery Guardian will show a manufacture date only after it directly reads and decodes the SBS manufacture-date field.</p>
 
-        <p><strong>Q: Can a battery pass all checks and still be fake?</strong><br>In practice, no. Consumer battery flashing tools (JCID, NLBA1, and similar) can only overwrite a limited set of DataFlash registers, typically cycle count, design capacity, and Qmax. The majority of Battery Guardian's checks examine registers that the TI chip updates automatically via hardware: <code>TotalOperatingTime</code> increments on its own every cycle, <code>TemperatureSamples</code> updates on every temperature measurement, and lifetime protection registers like <code>MaximumPackVoltage</code> are recorded by the chip's hardware safety layer. You cannot simply "set" these to fake values, even if written, the hardware immediately resumes updating them from that point. Freezing them requires disabling the TI firmware counters at a level that goes far beyond DataFlash writes, and attempting it risks triggering the chip's Permanent Failure latch, which irreversibly bricks it. The Frozen Clock check exists specifically to catch the most common evasion: a frozen <code>TotalOperatingTime</code>.</p>
+        <p><strong>Q: Can a third-party or reprogrammed battery pass?</strong><br>Yes. This is a forensic classifier built from available telemetry, documentation, and a still-small labelled dataset. It should be used as one source of evidence, not as a cryptographic certificate of origin.</p>
 
         <br><br><br>
         <div style="text-align: center; color: var(--sub); font-size: 13px;">
