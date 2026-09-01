@@ -5,9 +5,9 @@
  * either value in this file or commit them to the repository.
  */
 
-var GITHUB_BASE = "https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/download/v1.4";
+var GITHUB_BASE = "https://github.com/Dannyjay-hub/Battery-Guardian-for-Mac/releases/download/v2.0";
 var ASSETS = {
-  silicon: "Battery_Guardian_v1.4_AppleSilicon.zip",
+  silicon: "BatteryGuardian_v2.0.zip",
   intel: "BatteryGuardian_v1.3.2_Intel.dmg"
 };
 
